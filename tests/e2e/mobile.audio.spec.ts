@@ -68,7 +68,7 @@ for (const hasSession of [true, false]) {
         const nativePlay = HTMLMediaElement.prototype.play;
         HTMLMediaElement.prototype.play = function () {
           if (!this.muted) {
-            if (!gesture)
+            if (!gesture && !outputs.includes(this))
               return Promise.reject(
                 new DOMException("Tap required", "NotAllowedError"),
               );
@@ -143,3 +143,30 @@ for (const hasSession of [true, false]) {
       .toBeGreaterThan(0.001);
   });
 }
+
+test("silent choice scene pauses the iPhone output and the next voice resumes it", async ({ page }) => {
+  await page.addInitScript(() => {
+    const outputs: HTMLMediaElement[] = [];
+    const play = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function () {
+      if (this.srcObject instanceof MediaStream && !outputs.includes(this))
+        outputs.push(this);
+      return play.call(this);
+    };
+    Object.assign(window, {
+      outputPaused: () => outputs.length === 1 && outputs[0].paused,
+    });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Začať odznova", exact: true }).tap();
+  await expect(page.locator(".player-video")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: /Mars/ })).toBeVisible({ timeout: 30000 });
+  const paused = () => page.evaluate(() =>
+    (window as unknown as { outputPaused: () => boolean }).outputPaused(),
+  );
+  await expect.poll(paused).toBe(true);
+  await page.waitForTimeout(500);
+  expect(await paused()).toBe(true);
+  await page.getByRole("button", { name: /Mars/ }).tap();
+  await expect.poll(paused).toBe(false);
+});

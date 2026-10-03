@@ -13,6 +13,21 @@ class SoundEngine {
   private retiring = new Set<Track>();
   private mediaOutput?: MediaStreamAudioDestinationNode;
   private mediaPlayer?: HTMLAudioElement;
+  private liveSources = new Set<AudioBufferSourceNode>();
+  private activate(source: AudioBufferSourceNode, ended?: () => void) {
+    this.liveSources.add(source);
+    source.onended = () => {
+      this.liveSources.delete(source);
+      ended?.();
+      if (!this.liveSources.size) this.mediaPlayer?.pause();
+    };
+    if (this.mediaPlayer?.paused)
+      void this.mediaPlayer.play().catch(() => {});
+  }
+  private deactivate(source: AudioBufferSourceNode) {
+    this.liveSources.delete(source);
+    if (!this.liveSources.size) this.mediaPlayer?.pause();
+  }
   unlock() {
     const session = (
       navigator as Navigator & { audioSession?: { type: string } }
@@ -100,6 +115,11 @@ class SoundEngine {
     source.connect(gain).connect(this.mediaOutput ?? context.destination);
     const track = { id: asset.id, source, gain };
     this.tracks.set(kind, track);
+    this.activate(source, () => {
+      if (this.tracks.get(kind) === track) this.tracks.delete(kind);
+      source.disconnect();
+      gain.disconnect();
+    });
     source.start();
     this.fade(gain, kind === "voice" ? this.volume : this.volume * 0.45);
   }
@@ -124,6 +144,7 @@ class SoundEngine {
       if (!source) return;
       source.stop();
       source.disconnect();
+      this.deactivate(source);
       source = undefined;
     };
     const sync = () => {
@@ -141,6 +162,7 @@ class SoundEngine {
       source.buffer = buffer;
       source.playbackRate.value = video.playbackRate;
       source.connect(gain);
+      this.activate(source);
       source.start(0, video.currentTime);
     };
     const syncEvents = ["playing", "seeked", "ratechange"];
