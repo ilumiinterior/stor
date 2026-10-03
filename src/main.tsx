@@ -12,7 +12,7 @@ import "@fontsource/nunito-sans/latin-400.css";
 import "@fontsource/nunito-sans/latin-ext-400.css";
 import "@fontsource/source-serif-4/latin-400.css";
 import "@fontsource/source-serif-4/latin-ext-400.css";
-import App from "./App";
+import App from "@application";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { t } from "./i18n";
 import "./styles.css";

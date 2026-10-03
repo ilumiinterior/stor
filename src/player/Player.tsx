@@ -3,7 +3,7 @@ import type { Story, Asset, SaveGame, Choice } from "../types/story";
 import { t } from "../i18n";
 import { advance, begin, choose, meets, validSave } from "../engine";
 import { db } from "../database";
-import { useAssetUrl } from "../components/AssetPreview";
+import { useAssetUrl } from "./useAssetUrl";
 import { sound } from "./audio";
 import { saveGameSchema } from "../utils/schema";
 import { useAppearance } from "../stores/appearance";
@@ -31,11 +31,13 @@ export function Player({
   assets,
   previewScene,
   back,
+  standalone = false,
 }: {
   story: Story;
   assets: Asset[];
   previewScene?: string;
   back: () => void;
+  standalone?: boolean;
 }) {
   const preview = previewScene !== undefined;
   const preferences = useAppearance();
@@ -367,22 +369,24 @@ export function Player({
       <div className="player-shade" />
       {(!automatic || menu) && (
         <header className="player-top">
-          <button
-            onClick={() => {
-              if (menu) void exit();
-              else {
-                void save();
-                setMenu(true);
-                setPage("main");
-              }
-            }}
-          >
-            {menu
-              ? preview
-                ? t("player.returnEditor")
-                : t("app.back")
-              : t("player.menu")}
-          </button>
+          {(!standalone || !menu) && (
+            <button
+              onClick={() => {
+                if (menu) void exit();
+                else {
+                  void save();
+                  setMenu(true);
+                  setPage("main");
+                }
+              }}
+            >
+              {menu
+                ? preview
+                  ? t("player.returnEditor")
+                  : t("app.back")
+                : t("player.menu")}
+            </button>
+          )}
           <span>{preview ? t("player.preview") : story.title}</span>
         </header>
       )}

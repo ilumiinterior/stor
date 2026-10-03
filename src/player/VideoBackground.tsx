@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Asset } from "../types/story";
-import { useAssetUrl } from "../components/AssetPreview";
+import { useAssetUrl } from "./useAssetUrl";
 import { t } from "../i18n";
 export function VideoBackground({
   asset,

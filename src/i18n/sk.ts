@@ -31,7 +31,7 @@ export const sk = {
   },
   app: {
     name: "Vetvy",
-    description: "Tvorba a hranie interaktívnych príbehov",
+    description: "Interaktívne príbehy na hranie",
     loading: "Otváram knižnicu…",
     library: "Vaša knižnica",
     intro: "Každé rozhodnutie otvára nový príbeh.",
@@ -155,6 +155,9 @@ export const sk = {
       "Odstránenie premennej odstráni aj jej podmienky a zmeny. Pokračovať?",
   },
   player: {
+    unpublished: "Hra ešte nie je dostupná.",
+    unpublishedHint: "Príbeh sa pripravuje. Vráťte sa neskôr.",
+    gameLoadError: "Hru sa nepodarilo načítať. Skúste to znova.",
     playVideo: "Prehrať video",
     pauseVideo: "Pozastaviť video",
     videoChoicePause: "Čas na rozhodnutie",

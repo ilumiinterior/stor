@@ -1,6 +1,13 @@
 import ts from "typescript-eslint";
 export default ts.config(
-  { ignores: ["dist/**", "node_modules/**"] },
+  {
+    ignores: [
+      "dist/**",
+      "dist-editor/**",
+      "node_modules/**",
+      ".verification/**",
+    ],
+  },
   ...ts.configs.recommended,
   {
     rules: {
