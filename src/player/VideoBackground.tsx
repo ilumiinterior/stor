@@ -100,6 +100,7 @@ export function VideoBackground({
       setManualPause(true);
       element.pause();
     } else {
+      soundEngine.unlock();
       setChoicePause(false);
       setManualPause(false);
       try {

@@ -261,6 +261,7 @@ export function Player({
   const decision = useCallback(
     async (choice?: Choice) => {
       if (locked.current || !gameRef.current) return;
+      if (choice) sound.unlock();
       locked.current = true;
       try {
         const now = performance.now();

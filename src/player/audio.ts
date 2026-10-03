@@ -11,9 +11,36 @@ class SoundEngine {
   private buffers = new WeakMap<Blob, Promise<AudioBuffer>>();
   private volume = 0.7;
   private retiring = new Set<Track>();
+  private mediaPrimer?: HTMLAudioElement;
   unlock() {
+    const session = (
+      navigator as Navigator & { audioSession?: { type: string } }
+    ).audioSession;
+    let playbackSession = false;
+    try {
+      if (session) {
+        session.type = "playback";
+        playbackSession = session.type === "playback";
+      }
+    } catch {
+      /* Some browsers expose a read-only session. */
+    }
     this.context ??= new AudioContext();
     void this.context.resume().catch(() => {});
+    // Start an actual source synchronously inside the player's tap, before decoding media.
+    const primer = this.context.createBufferSource();
+    primer.buffer = this.context.createBuffer(1, 1, this.context.sampleRate);
+    primer.connect(this.context.destination);
+    primer.onended = () => primer.disconnect();
+    primer.start();
+    const ios =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (ios && !playbackSession) {
+      this.mediaPrimer ??= new Audio("/audio-primer.wav");
+      this.mediaPrimer.loop = true;
+      void this.mediaPrimer.play().catch(() => {});
+    }
   }
   setVolume(volume: number) {
     this.volume = volume;
@@ -137,12 +164,14 @@ class SoundEngine {
     };
   }
   stop() {
+    this.mediaPrimer?.pause();
     for (const [kind, request] of this.requests)
       this.requests.set(kind, request + 1);
     for (const track of this.tracks.values()) this.retire(track);
     this.tracks.clear();
   }
   dispose() {
+    this.mediaPrimer?.pause();
     for (const track of [...this.tracks.values(), ...this.retiring]) {
       track.source.stop();
       track.source.disconnect();
