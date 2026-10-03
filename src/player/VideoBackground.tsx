@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Asset } from "../types/story";
 import { useAssetUrl } from "./useAssetUrl";
 import { t } from "../i18n";
+import { sound as soundEngine } from "./audio";
 export function VideoBackground({
   asset,
   poster,
@@ -32,6 +33,7 @@ export function VideoBackground({
   const [playing, setPlaying] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [audioFailed, setAudioFailed] = useState(false);
   const [hidden, setHidden] = useState(document.hidden);
   const [choicePause, setChoicePause] = useState(false);
   const [manualPause, setManualPause] = useState(
@@ -56,9 +58,17 @@ export function VideoBackground({
   useEffect(() => {
     if (video.current) {
       video.current.volume = Math.max(0, Math.min(1, volume));
-      video.current.muted = !sound;
+      video.current.muted = true;
     }
   }, [sound, volume, url]);
+  useEffect(() => {
+    const element = video.current;
+    if (!element || !url || !active || !sound || hidden) return;
+    setAudioFailed(false);
+    return soundEngine.bindVideo(element, asset, volume, () =>
+      setAudioFailed(true),
+    );
+  }, [asset, url, active, sound, hidden, volume]);
   useEffect(() => {
     const element = video.current;
     if (!element || !url) return;
@@ -108,7 +118,7 @@ export function VideoBackground({
         src={url || undefined}
         poster={poster || undefined}
         playsInline
-        muted={!sound}
+        muted
         preload="auto"
         aria-label={asset.name}
         style={failed ? { visibility: "hidden" } : undefined}
@@ -155,6 +165,11 @@ export function VideoBackground({
             </>
           )}
         </div>
+      )}
+      {active && audioFailed && (
+        <small role="alert" className="player-video-controls">
+          {t("player.audioBlocked")}
+        </small>
       )}
     </>
   );

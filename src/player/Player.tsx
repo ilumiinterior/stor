@@ -191,7 +191,7 @@ export function Player({
       /* Settings are optional; story persistence is handled separately. */
     }
     sound.setVolume(settings.volume);
-    if (!settings.sound || menu) {
+    if (!settings.sound || menu || pageHidden) {
       sound.stop();
       return;
     }
@@ -212,7 +212,7 @@ export function Player({
     return () => {
       current = false;
     };
-  }, [scene, settings, assets, menu]);
+  }, [scene, settings, assets, menu, pageHidden]);
   useEffect(() => () => sound.stop(), []);
   useEffect(() => {
     if (!scene) return;
