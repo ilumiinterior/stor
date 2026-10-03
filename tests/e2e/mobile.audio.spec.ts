@@ -10,7 +10,7 @@ test.use({
 });
 
 for (const hasSession of [true, false]) {
-  test(`tap unlocks video and ending voice with ${hasSession ? "playback session" : "legacy media activation"}`, async ({
+  test(`tap unlocks video and ending voice with ${hasSession ? "playback session" : "native media output without session API"}`, async ({
     page,
   }) => {
     const bytes = await readFile("public/game.story").catch(() => null);
@@ -29,6 +29,7 @@ for (const hasSession of [true, false]) {
     );
     await page.addInitScript(
       ({ hasSession }) => {
+        const outputs: HTMLMediaElement[] = [];
         let gesture = false,
           primed = false,
           legacyStarted = false;
@@ -71,7 +72,10 @@ for (const hasSession of [true, false]) {
               return Promise.reject(
                 new DOMException("Tap required", "NotAllowedError"),
               );
-            if (this.src.endsWith("audio-primer.wav")) legacyStarted = true;
+            if (this.srcObject instanceof MediaStream) {
+              legacyStarted = true;
+              outputs.push(this);
+            }
           }
           return nativePlay.call(this);
         };
@@ -88,6 +92,10 @@ for (const hasSession of [true, false]) {
           mobileProbe: () => ({
             primed,
             legacyStarted,
+            outputPlaying:
+              outputs.length > 0 &&
+              !outputs[0].paused &&
+              outputs[0].currentTime > 0,
             session: session.type,
             peaks: analysers.map((analyser) => {
               const samples = new Float32Array(analyser.fftSize);
@@ -110,6 +118,7 @@ for (const hasSession of [true, false]) {
             mobileProbe: () => {
               primed: boolean;
               legacyStarted: boolean;
+              outputPlaying: boolean;
               session: string;
               peaks: number[];
             };
@@ -118,7 +127,8 @@ for (const hasSession of [true, false]) {
       );
     expect((await probe()).primed).toBe(true);
     if (hasSession) expect((await probe()).session).toBe("playback");
-    else expect((await probe()).legacyStarted).toBe(true);
+    expect((await probe()).legacyStarted).toBe(true);
+    await expect.poll(async () => (await probe()).outputPlaying).toBe(true);
     await expect
       .poll(async () => Math.max(0, ...(await probe()).peaks))
       .toBeGreaterThan(0.001);

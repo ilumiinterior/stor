@@ -11,6 +11,7 @@ import { defaultPresentation } from "../utils/appearance";
 import { AppearanceFields } from "../components/AppearanceFields";
 import { VideoBackground } from "./VideoBackground";
 import { colorStyle } from "../utils/colors";
+import { version } from "../../package.json";
 function readSettings() {
   try {
     const raw = JSON.parse(localStorage.getItem("vetvy.settings") ?? "{}");
@@ -488,6 +489,7 @@ export function Player({
           )}
           {page === "settings" && (
             <div className="menu-buttons">
+              <small>{t("player.appVersion", { version })}</small>
               {!preview && (
                 <>
                   <AppearanceFields

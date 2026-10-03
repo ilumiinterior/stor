@@ -155,6 +155,7 @@ export const sk = {
       "Odstránenie premennej odstráni aj jej podmienky a zmeny. Pokračovať?",
   },
   player: {
+    appVersion: "Verzia aplikácie: {version}",
     unpublished: "Hra ešte nie je dostupná.",
     unpublishedHint: "Príbeh sa pripravuje. Vráťte sa neskôr.",
     gameLoadError: "Hru sa nepodarilo načítať. Skúste to znova.",
