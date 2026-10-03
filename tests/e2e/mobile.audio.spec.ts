@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+﻿import { test, expect, type Page } from "@playwright/test";
 import JSZip from "jszip";
 import { readFile } from "node:fs/promises";
 test.use({
@@ -8,175 +8,147 @@ test.use({
   userAgent:
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0.0.0 Mobile/15E148 Safari/604.1",
 });
-
+function installProbe(hasSession: boolean) {
+  const outputs: HTMLAudioElement[] = [];
+  const session = { type: "auto" };
+  Object.defineProperty(navigator, "audioSession", {
+    configurable: true,
+    value: hasSession ? session : undefined,
+  });
+  AudioContext.prototype.createMediaStreamDestination = () => {
+    throw Error("Live stream output is broken on this device");
+  };
+  let gesture = false;
+  window.addEventListener(
+    "click",
+    () => {
+      gesture = true;
+      setTimeout(() => {
+        gesture = false;
+      });
+    },
+    true,
+  );
+  const play = HTMLMediaElement.prototype.play;
+  HTMLMediaElement.prototype.play = function () {
+    if (this instanceof HTMLAudioElement && !outputs.includes(this)) {
+      if (!gesture)
+        return Promise.reject(
+          new DOMException("Tap required", "NotAllowedError"),
+        );
+      outputs.push(this);
+      if (!hasSession)
+        this.addEventListener(
+          "ended",
+          (event) => event.stopImmediatePropagation(),
+          true,
+        );
+    }
+    return play.call(this);
+  };
+  Object.assign(window, {
+    mobileProbe: () => ({
+      session: session.type,
+      outputs: outputs.map((audio) => ({
+        src: audio.src,
+        paused: audio.paused,
+        muted: audio.muted,
+        time: audio.currentTime,
+        duration: audio.duration,
+        loop: audio.loop,
+        live: audio.srcObject !== null,
+      })),
+    }),
+  });
+}
+type Probe = {
+  session: string;
+  outputs: {
+    src: string;
+    paused: boolean;
+    muted: boolean;
+    time: number;
+    duration: number;
+    loop: boolean;
+    live: boolean;
+  }[];
+};
+async function pcmPeak(page: Page, index: number) {
+  return page.evaluate(async (index) => {
+    const probe = (
+      window as unknown as { mobileProbe: () => Probe }
+    ).mobileProbe();
+    const bytes = await (await fetch(probe.outputs[index].src)).arrayBuffer();
+    const view = new DataView(bytes);
+    if (view.getUint32(0) !== 0x52494646)
+      throw Error("Expected finite RIFF audio");
+    let peak = 0;
+    for (let offset = 44; offset + 1 < bytes.byteLength; offset += 2)
+      peak = Math.max(peak, Math.abs(view.getInt16(offset, true)) / 32768);
+    return peak;
+  }, index);
+}
 for (const hasSession of [true, false]) {
-  test(`tap unlocks video and ending voice with ${hasSession ? "playback session" : "native media output without session API"}`, async ({
+  test(`iPhone finite video and ending audio stop with ${hasSession ? "session API" : "no session API or end callback"}`, async ({
     page,
   }) => {
-    const bytes = await readFile("public/game.story").catch(() => null);
-    test.skip(!bytes, "No published story.");
-    const zip = await JSZip.loadAsync(bytes!);
+    const zip = await JSZip.loadAsync(await readFile("public/game.story"));
     const raw = JSON.parse(await zip.file("story.json")!.async("string"));
     const scene = raw.story.scenes.find(
       (s: { name: string }) => s.name === "Neber si to osobne",
     );
-    test.skip(!scene?.videoId, "No regression scene in this story.");
     raw.story.startSceneId = scene.id;
     zip.file("story.json", JSON.stringify(raw));
     const body = await zip.generateAsync({ type: "nodebuffer" });
     await page.route("**/game.story", (route) =>
       route.fulfill({ status: 200, body }),
     );
-    await page.addInitScript(
-      ({ hasSession }) => {
-        const outputs: HTMLMediaElement[] = [];
-        let gesture = false,
-          primed = false,
-          legacyStarted = false,
-          audibleStarts = 0;
-        const session = { type: "auto" };
-        Object.defineProperty(navigator, "audioSession", {
-          configurable: true,
-          value: hasSession ? session : undefined,
-        });
-        window.addEventListener(
-          "click",
-          () => {
-            gesture = true;
-            setTimeout(() => {
-              gesture = false;
-            });
-          },
-          true,
-        );
-        const createSource = AudioContext.prototype.createBufferSource;
-        AudioContext.prototype.createBufferSource = function () {
-          const source = createSource.call(this);
-          const start = source.start;
-          source.start = function (
-            ...args: Parameters<AudioBufferSourceNode["start"]>
-          ) {
-            if (gesture && this.buffer?.length === 1) primed = true;
-            if (!primed)
-              throw new DOMException(
-                "Audio output must be primed inside a tap",
-                "NotAllowedError",
-              );
-            if (this.buffer && this.buffer.length > 1) {
-              audibleStarts++;
-              // Exercise the duration fallback when WebKit misses the end callback.
-              if (!hasSession) this.onended = null;
-            }
-            return start.apply(this, args);
-          };
-          return source;
-        };
-        const nativePlay = HTMLMediaElement.prototype.play;
-        HTMLMediaElement.prototype.play = function () {
-          if (!this.muted) {
-            if (!gesture && !outputs.includes(this))
-              return Promise.reject(
-                new DOMException("Tap required", "NotAllowedError"),
-              );
-            if (this.srcObject instanceof MediaStream) {
-              legacyStarted = true;
-              outputs.push(this);
-            }
-          }
-          return nativePlay.call(this);
-        };
-        const analysers: AnalyserNode[] = [];
-        const createGain = AudioContext.prototype.createGain;
-        AudioContext.prototype.createGain = function () {
-          const gain = createGain.call(this),
-            analyser = this.createAnalyser();
-          gain.connect(analyser);
-          analysers.push(analyser);
-          return gain;
-        };
-        Object.assign(window, {
-          mobileProbe: () => ({
-            primed,
-            legacyStarted,
-            outputPlaying:
-              outputs.length > 0 &&
-              !outputs[0].paused &&
-              outputs[0].currentTime > 0,
-            session: session.type,
-            outputMuted: outputs[0]?.muted,
-            audibleStarts,
-            peaks: analysers.map((analyser) => {
-              const samples = new Float32Array(analyser.fftSize);
-              analyser.getFloatTimeDomainData(samples);
-              return Math.max(...samples.map(Math.abs));
-            }),
-          }),
-        });
-      },
-      { hasSession },
-    );
+    await page.addInitScript(installProbe, hasSession);
     await page.goto("/");
     await page
       .getByRole("button", { name: "Začať odznova", exact: true })
       .tap();
     const probe = () =>
       page.evaluate(() =>
-        (
-          window as unknown as {
-            mobileProbe: () => {
-              primed: boolean;
-              legacyStarted: boolean;
-              outputPlaying: boolean;
-              session: string;
-              outputMuted: boolean;
-              audibleStarts: number;
-              peaks: number[];
-            };
-          }
-        ).mobileProbe(),
+        (window as unknown as { mobileProbe: () => Probe }).mobileProbe(),
       );
-    expect((await probe()).primed).toBe(true);
+    expect((await probe()).outputs).toHaveLength(4);
     if (hasSession) expect((await probe()).session).toBe("playback");
-    expect((await probe()).legacyStarted).toBe(true);
-    await expect.poll(async () => (await probe()).outputPlaying).toBe(true);
     await expect
-      .poll(async () => Math.max(0, ...(await probe()).peaks))
-      .toBeGreaterThan(0.001);
+      .poll(async () => (await probe()).outputs[3].time)
+      .toBeGreaterThan(0.2);
+    expect(await pcmPeak(page, 3)).toBeGreaterThan(0.001);
     await expect(page.locator(".player-video")).toHaveCount(0, {
       timeout: 7000,
     });
     await expect
-      .poll(async () => {
-        const peaks = (await probe()).peaks;
-        return peaks.length >= 2 ? peaks[peaks.length - 1] : 0;
-      })
-      .toBeGreaterThan(0.001);
+      .poll(async () => (await probe()).outputs[0].time)
+      .toBeGreaterThan(0.2);
+    expect(await pcmPeak(page, 0)).toBeGreaterThan(0.001);
+    const voice = (await probe()).outputs[0];
+    expect(Number.isFinite(voice.duration)).toBe(true);
+    expect(voice.loop).toBe(false);
     await expect
-      .poll(async () => (await probe()).outputPlaying, { timeout: 8000 })
-      .toBe(false);
-    expect((await probe()).outputMuted).toBe(true);
-    const starts = (await probe()).audibleStarts;
-    await page.waitForTimeout(700);
-    expect((await probe()).audibleStarts).toBe(starts);
-    expect((await probe()).outputPlaying).toBe(false);
+      .poll(
+        async () =>
+          (await probe()).outputs.every((audio) => audio.paused && audio.muted),
+        { timeout: 8000 },
+      )
+      .toBe(true);
+    const ended = (await probe()).outputs[0].time;
+    await page.waitForTimeout(1000);
+    expect((await probe()).outputs[0].time).toBe(ended);
+    expect(
+      (await probe()).outputs.every(
+        (audio) => !audio.live && audio.paused && audio.muted,
+      ),
+    ).toBe(true);
   });
 }
-
-test("silent choice scene pauses the iPhone output and the next voice resumes it", async ({
+test("silent choice scene stops all iPhone players and next voice resumes", async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    const outputs: HTMLMediaElement[] = [];
-    const play = HTMLMediaElement.prototype.play;
-    HTMLMediaElement.prototype.play = function () {
-      if (this.srcObject instanceof MediaStream && !outputs.includes(this))
-        outputs.push(this);
-      return play.call(this);
-    };
-    Object.assign(window, {
-      outputPaused: () => outputs.length === 1 && outputs[0].paused,
-    });
-  });
+  await page.addInitScript(installProbe, true);
   await page.goto("/");
   await page.getByRole("button", { name: "Začať odznova", exact: true }).tap();
   await expect(page.locator(".player-video")).toHaveCount(1);
@@ -185,11 +157,14 @@ test("silent choice scene pauses the iPhone output and the next voice resumes it
   });
   const paused = () =>
     page.evaluate(() =>
-      (window as unknown as { outputPaused: () => boolean }).outputPaused(),
+      (window as unknown as { mobileProbe: () => Probe })
+        .mobileProbe()
+        .outputs.every((audio) => audio.paused && audio.muted),
     );
   await expect.poll(paused).toBe(true);
   await page.waitForTimeout(500);
   expect(await paused()).toBe(true);
   await page.getByRole("button", { name: /Mars/ }).tap();
   await expect.poll(paused).toBe(false);
+  expect(await pcmPeak(page, 0)).toBeGreaterThan(0.001);
 });

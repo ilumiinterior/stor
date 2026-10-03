@@ -1,4 +1,5 @@
 import type { Asset } from "../types/story";
+import { NativeAudio } from "./NativeAudio";
 interface Track {
   id: string;
   source: AudioBufferSourceNode;
@@ -11,8 +12,7 @@ class SoundEngine {
   private buffers = new WeakMap<Blob, Promise<AudioBuffer>>();
   private volume = 0.7;
   private retiring = new Set<Track>();
-  private mediaOutput?: MediaStreamAudioDestinationNode;
-  private mediaPlayer?: HTMLAudioElement;
+  private native?: NativeAudio;
   private liveSources = new Set<AudioBufferSourceNode>();
   private deadlines = new Map<
     AudioBufferSourceNode,
@@ -20,11 +20,6 @@ class SoundEngine {
   >();
   private completedVoices = new Set<string>();
   private playbackSceneId = "";
-  private silenceOutput() {
-    if (this.liveSources.size || !this.mediaPlayer) return;
-    this.mediaPlayer.muted = true;
-    this.mediaPlayer.pause();
-  }
   private activate(
     source: AudioBufferSourceNode,
     duration: number,
@@ -37,7 +32,6 @@ class SoundEngine {
       this.deadlines.delete(source);
       this.liveSources.delete(source);
       ended?.();
-      this.silenceOutput();
     };
     source.onended = finish;
     if (Number.isFinite(duration))
@@ -51,14 +45,11 @@ class SoundEngine {
           duration * 1000 + 150,
         ),
       );
-    if (this.mediaPlayer) this.mediaPlayer.muted = false;
-    if (this.mediaPlayer?.paused) void this.mediaPlayer.play().catch(() => {});
   }
   private deactivate(source: AudioBufferSourceNode) {
     clearTimeout(this.deadlines.get(source));
     this.deadlines.delete(source);
     this.liveSources.delete(source);
-    this.silenceOutput();
   }
   unlock() {
     const session = (
@@ -75,23 +66,21 @@ class SoundEngine {
     const ios =
       /iPad|iPhone|iPod/.test(navigator.userAgent) ||
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    if (ios && !this.mediaPlayer) {
-      this.mediaOutput = this.context.createMediaStreamDestination();
-      this.mediaPlayer = new Audio();
-      this.mediaPlayer.srcObject = this.mediaOutput.stream;
-      this.mediaPlayer.setAttribute("playsinline", "");
+    if (ios) {
+      this.native ??= new NativeAudio((asset) => this.decode(asset));
+      this.native.unlock();
     }
     void this.context.resume().catch(() => {});
-    if (this.mediaPlayer) void this.mediaPlayer.play().catch(() => {});
     // Start an actual source synchronously inside the player's tap, before decoding media.
     const primer = this.context.createBufferSource();
     primer.buffer = this.context.createBuffer(1, 1, this.context.sampleRate);
-    primer.connect(this.mediaOutput ?? this.context.destination);
+    primer.connect(this.context.destination);
     primer.onended = () => primer.disconnect();
     primer.start();
   }
   setVolume(volume: number) {
     this.volume = volume;
+    this.native?.setVolume(volume);
     for (const [kind, track] of this.tracks)
       this.fade(track.gain, kind === "voice" ? volume : volume * 0.45);
   }
@@ -126,6 +115,7 @@ class SoundEngine {
     return buffer;
   }
   async play(kind: string, asset?: Asset, sceneId = "") {
+    if (this.native) return this.native.play(kind, asset, sceneId);
     if (this.playbackSceneId !== sceneId) {
       this.playbackSceneId = sceneId;
       this.completedVoices.clear();
@@ -151,7 +141,7 @@ class SoundEngine {
     source.loop = kind !== "voice";
     const gain = context.createGain();
     gain.gain.value = 0;
-    source.connect(gain).connect(this.mediaOutput ?? context.destination);
+    source.connect(gain).connect(context.destination);
     const track = { id: asset.id, source, gain };
     this.tracks.set(kind, track);
     const endsAt = context.currentTime + buffer.duration;
@@ -176,6 +166,8 @@ class SoundEngine {
     volume: number,
     onError: () => void,
   ) {
+    if (this.native)
+      return this.native.bindVideo(video, asset, volume, onError);
     const context = this.context;
     if (!context) {
       onError();
@@ -186,7 +178,7 @@ class SoundEngine {
     let source: AudioBufferSourceNode | undefined;
     const gain = context.createGain();
     gain.gain.value = volume;
-    gain.connect(this.mediaOutput ?? context.destination);
+    gain.connect(context.destination);
     const stop = () => {
       if (!source) return;
       source.stop();
@@ -238,8 +230,7 @@ class SoundEngine {
   }
   stop() {
     this.completedVoices.clear();
-    if (this.mediaPlayer) this.mediaPlayer.muted = true;
-    this.mediaPlayer?.pause();
+    this.native?.stop();
     for (const [kind, request] of this.requests)
       this.requests.set(kind, request + 1);
     for (const track of this.tracks.values()) this.retire(track);
@@ -250,7 +241,7 @@ class SoundEngine {
     this.deadlines.clear();
     this.liveSources.clear();
     this.completedVoices.clear();
-    this.mediaPlayer?.pause();
+    this.native?.dispose();
     for (const track of [...this.tracks.values(), ...this.retiring]) {
       track.source.stop();
       track.source.disconnect();
