@@ -1,6 +1,27 @@
 import { test, expect } from "@playwright/test";
 import JSZip from "jszip";
+import { readFile } from "node:fs/promises";
+import { storySchema } from "../../src/utils/schema";
 test.use({ serviceWorkers: "block" });
+test("the actual published export opens as a player-only game", async ({
+  page,
+}) => {
+  const bytes = await readFile("public/game.story").catch(() => null);
+  test.skip(!bytes, "No game has been published yet.");
+  const zip = await JSZip.loadAsync(bytes!);
+  const raw = JSON.parse(await zip.file("story.json")!.async("string"));
+  const story = storySchema.parse(raw.story);
+  for (const asset of raw.assets) expect(zip.file(asset.path)).not.toBeNull();
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: story.title, exact: true }),
+  ).toBeVisible({ timeout: 15000 });
+  await expect(page.locator(".editor-shell, input[type=file]")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Začať odznova", exact: true })
+    .click();
+  await expect(page.locator(".scene-content")).toBeVisible();
+});
 
 test("public routes never expose authoring when no game is published", async ({
   page,
