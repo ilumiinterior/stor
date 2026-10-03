@@ -206,6 +206,7 @@ export function Player({
         .play(
           kind,
           assets.find((a) => a.id === scene?.[key]),
+          scene?.id,
         )
         .catch(() => {
           if (current) setError(t("player.audioBlocked"));

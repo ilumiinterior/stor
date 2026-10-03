@@ -32,7 +32,8 @@ for (const hasSession of [true, false]) {
         const outputs: HTMLMediaElement[] = [];
         let gesture = false,
           primed = false,
-          legacyStarted = false;
+          legacyStarted = false,
+          audibleStarts = 0;
         const session = { type: "auto" };
         Object.defineProperty(navigator, "audioSession", {
           configurable: true,
@@ -61,6 +62,11 @@ for (const hasSession of [true, false]) {
                 "Audio output must be primed inside a tap",
                 "NotAllowedError",
               );
+            if (this.buffer && this.buffer.length > 1) {
+              audibleStarts++;
+              // Exercise the duration fallback when WebKit misses the end callback.
+              if (!hasSession) this.onended = null;
+            }
             return start.apply(this, args);
           };
           return source;
@@ -97,6 +103,8 @@ for (const hasSession of [true, false]) {
               !outputs[0].paused &&
               outputs[0].currentTime > 0,
             session: session.type,
+            outputMuted: outputs[0]?.muted,
+            audibleStarts,
             peaks: analysers.map((analyser) => {
               const samples = new Float32Array(analyser.fftSize);
               analyser.getFloatTimeDomainData(samples);
@@ -120,6 +128,8 @@ for (const hasSession of [true, false]) {
               legacyStarted: boolean;
               outputPlaying: boolean;
               session: string;
+              outputMuted: boolean;
+              audibleStarts: number;
               peaks: number[];
             };
           }
@@ -141,10 +151,20 @@ for (const hasSession of [true, false]) {
         return peaks.length >= 2 ? peaks[peaks.length - 1] : 0;
       })
       .toBeGreaterThan(0.001);
+    await expect
+      .poll(async () => (await probe()).outputPlaying, { timeout: 8000 })
+      .toBe(false);
+    expect((await probe()).outputMuted).toBe(true);
+    const starts = (await probe()).audibleStarts;
+    await page.waitForTimeout(700);
+    expect((await probe()).audibleStarts).toBe(starts);
+    expect((await probe()).outputPlaying).toBe(false);
   });
 }
 
-test("silent choice scene pauses the iPhone output and the next voice resumes it", async ({ page }) => {
+test("silent choice scene pauses the iPhone output and the next voice resumes it", async ({
+  page,
+}) => {
   await page.addInitScript(() => {
     const outputs: HTMLMediaElement[] = [];
     const play = HTMLMediaElement.prototype.play;
@@ -160,10 +180,13 @@ test("silent choice scene pauses the iPhone output and the next voice resumes it
   await page.goto("/");
   await page.getByRole("button", { name: "Začať odznova", exact: true }).tap();
   await expect(page.locator(".player-video")).toHaveCount(1);
-  await expect(page.getByRole("button", { name: /Mars/ })).toBeVisible({ timeout: 30000 });
-  const paused = () => page.evaluate(() =>
-    (window as unknown as { outputPaused: () => boolean }).outputPaused(),
-  );
+  await expect(page.getByRole("button", { name: /Mars/ })).toBeVisible({
+    timeout: 30000,
+  });
+  const paused = () =>
+    page.evaluate(() =>
+      (window as unknown as { outputPaused: () => boolean }).outputPaused(),
+    );
   await expect.poll(paused).toBe(true);
   await page.waitForTimeout(500);
   expect(await paused()).toBe(true);

@@ -14,19 +14,51 @@ class SoundEngine {
   private mediaOutput?: MediaStreamAudioDestinationNode;
   private mediaPlayer?: HTMLAudioElement;
   private liveSources = new Set<AudioBufferSourceNode>();
-  private activate(source: AudioBufferSourceNode, ended?: () => void) {
+  private deadlines = new Map<
+    AudioBufferSourceNode,
+    ReturnType<typeof setTimeout>
+  >();
+  private completedVoices = new Set<string>();
+  private playbackSceneId = "";
+  private silenceOutput() {
+    if (this.liveSources.size || !this.mediaPlayer) return;
+    this.mediaPlayer.muted = true;
+    this.mediaPlayer.pause();
+  }
+  private activate(
+    source: AudioBufferSourceNode,
+    duration: number,
+    ended?: () => void,
+  ) {
     this.liveSources.add(source);
-    source.onended = () => {
+    const finish = () => {
+      if (!this.liveSources.has(source)) return;
+      clearTimeout(this.deadlines.get(source));
+      this.deadlines.delete(source);
       this.liveSources.delete(source);
       ended?.();
-      if (!this.liveSources.size) this.mediaPlayer?.pause();
+      this.silenceOutput();
     };
-    if (this.mediaPlayer?.paused)
-      void this.mediaPlayer.play().catch(() => {});
+    source.onended = finish;
+    if (Number.isFinite(duration))
+      this.deadlines.set(
+        source,
+        setTimeout(
+          () => {
+            source.stop();
+            finish();
+          },
+          duration * 1000 + 150,
+        ),
+      );
+    if (this.mediaPlayer) this.mediaPlayer.muted = false;
+    if (this.mediaPlayer?.paused) void this.mediaPlayer.play().catch(() => {});
   }
   private deactivate(source: AudioBufferSourceNode) {
+    clearTimeout(this.deadlines.get(source));
+    this.deadlines.delete(source);
     this.liveSources.delete(source);
-    if (!this.liveSources.size) this.mediaPlayer?.pause();
+    this.silenceOutput();
   }
   unlock() {
     const session = (
@@ -77,6 +109,7 @@ class SoundEngine {
       track.source.stop();
       track.source.disconnect();
       track.gain.disconnect();
+      this.deactivate(track.source);
       this.retiring.delete(track);
     }, 450);
   }
@@ -92,7 +125,13 @@ class SoundEngine {
     }
     return buffer;
   }
-  async play(kind: string, asset?: Asset) {
+  async play(kind: string, asset?: Asset, sceneId = "") {
+    if (this.playbackSceneId !== sceneId) {
+      this.playbackSceneId = sceneId;
+      this.completedVoices.clear();
+    }
+    const voiceKey = `${sceneId}:${asset?.id}`;
+    if (kind === "voice" && asset && this.completedVoices.has(voiceKey)) return;
     const old = this.tracks.get(kind);
     if (asset && old?.id === asset.id) return;
     const request = (this.requests.get(kind) ?? 0) + 1;
@@ -115,7 +154,15 @@ class SoundEngine {
     source.connect(gain).connect(this.mediaOutput ?? context.destination);
     const track = { id: asset.id, source, gain };
     this.tracks.set(kind, track);
-    this.activate(source, () => {
+    const endsAt = context.currentTime + buffer.duration;
+    this.activate(source, source.loop ? Infinity : buffer.duration, () => {
+      if (
+        kind === "voice" &&
+        this.playbackSceneId === sceneId &&
+        this.requests.get(kind) === request &&
+        context.currentTime >= endsAt - 0.01
+      )
+        this.completedVoices.add(voiceKey);
       if (this.tracks.get(kind) === track) this.tracks.delete(kind);
       source.disconnect();
       gain.disconnect();
@@ -162,7 +209,10 @@ class SoundEngine {
       source.buffer = buffer;
       source.playbackRate.value = video.playbackRate;
       source.connect(gain);
-      this.activate(source);
+      this.activate(
+        source,
+        (buffer.duration - video.currentTime) / video.playbackRate,
+      );
       source.start(0, video.currentTime);
     };
     const syncEvents = ["playing", "seeked", "ratechange"];
@@ -187,6 +237,8 @@ class SoundEngine {
     };
   }
   stop() {
+    this.completedVoices.clear();
+    if (this.mediaPlayer) this.mediaPlayer.muted = true;
     this.mediaPlayer?.pause();
     for (const [kind, request] of this.requests)
       this.requests.set(kind, request + 1);
@@ -194,6 +246,10 @@ class SoundEngine {
     this.tracks.clear();
   }
   dispose() {
+    for (const timer of this.deadlines.values()) clearTimeout(timer);
+    this.deadlines.clear();
+    this.liveSources.clear();
+    this.completedVoices.clear();
     this.mediaPlayer?.pause();
     for (const track of [...this.tracks.values(), ...this.retiring]) {
       track.source.stop();
