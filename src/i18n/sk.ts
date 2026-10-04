@@ -1,4 +1,17 @@
 export const sk = {
+  soundtrack: {
+    title: "Soundtrack celej hry",
+    track: "Globálna hudba",
+    volume: "Hlasitosť soundtracku",
+    upload: "Nahrať soundtrack",
+    hint: "Hudba sa opakuje a pokračuje medzi kartami. Hudba konkrétnej scény ju dočasne nahradí. Hlasitosť sa kombinuje s hlasitosťou hráča.",
+  },
+  previewNavigation: {
+    previous: "Predchádzajúca karta",
+    next: "Preskočiť kartu",
+    scene: "Prejsť na kartu",
+    close: "Zavrieť náhľad",
+  },
   textSequence: {
     firstDuration: "Trvanie prvej časti (sekundy)",
     secondDuration: "Trvanie druhej časti (sekundy)",

@@ -11,6 +11,13 @@ class SoundEngine {
   private requests = new Map<string, number>();
   private buffers = new WeakMap<Blob, Promise<AudioBuffer>>();
   private volume = 0.7;
+  private musicVolume = 0.45;
+  setMusicVolume(volume: number) {
+    this.musicVolume = volume;
+    this.native?.setMusicVolume(volume);
+    const music = this.tracks.get("music");
+    if (music) this.fade(music.gain, this.volume * volume);
+  }
   private retiring = new Set<Track>();
   private native?: NativeAudio;
   private liveSources = new Set<AudioBufferSourceNode>();
@@ -82,7 +89,12 @@ class SoundEngine {
     this.volume = volume;
     this.native?.setVolume(volume);
     for (const [kind, track] of this.tracks)
-      this.fade(track.gain, kind === "voice" ? volume : volume * 0.45);
+      this.fade(
+        track.gain,
+        kind === "voice"
+          ? volume
+          : volume * (kind === "music" ? this.musicVolume : 0.45),
+      );
   }
   private fade(gain: GainNode, value: number) {
     if (!this.context) return;
@@ -158,7 +170,12 @@ class SoundEngine {
       gain.disconnect();
     });
     source.start();
-    this.fade(gain, kind === "voice" ? this.volume : this.volume * 0.45);
+    this.fade(
+      gain,
+      kind === "voice"
+        ? this.volume
+        : this.volume * (kind === "music" ? this.musicVolume : 0.45),
+    );
   }
   bindVideo(
     video: HTMLVideoElement,

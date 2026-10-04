@@ -7,6 +7,15 @@ export interface Warning {
 export function validate(story: Story, assets: Asset[]): Warning[] {
   const warnings: Warning[] = [];
   if (
+    story.soundtrack &&
+    !assets.some(
+      (a) =>
+        a.id === story.soundtrack?.assetId &&
+        (a.kind === "audio" || a.kind === "music"),
+    )
+  )
+    warnings.push({ key: "debug.missingAsset" });
+  if (
     story.timer?.enabled &&
     !story.scenes.some((s) => s.id === story.timer?.targetSceneId && s.ending)
   )

@@ -6,6 +6,7 @@ export function pcmWave(
     AudioBuffer,
     "numberOfChannels" | "length" | "sampleRate" | "getChannelData"
   >,
+  gain = 1,
 ) {
   const channels = buffer.numberOfChannels;
   const bytes = new ArrayBuffer(44 + buffer.length * channels * 2);
@@ -32,7 +33,7 @@ export function pcmWave(
   );
   for (let frame = 0; frame < buffer.length; frame++)
     for (let channel = 0; channel < channels; channel++) {
-      const sample = Math.max(-1, Math.min(1, samples[channel][frame]));
+      const sample = Math.max(-1, Math.min(1, samples[channel][frame] * gain));
       view.setInt16(
         44 + (frame * channels + channel) * 2,
         sample * (sample < 0 ? 32768 : 32767),
@@ -45,6 +46,7 @@ export function pcmWave(
 interface Slot {
   audio: HTMLAudioElement;
   key?: string;
+  assetId?: string;
   request: number;
   timer?: ReturnType<typeof setTimeout>;
 }
@@ -53,10 +55,14 @@ export class NativeAudio {
   private slots = new Map<string, Slot>();
   private files = new WeakMap<
     Blob,
-    Promise<{ url: string; duration: number }>
+    Map<number, Promise<{ url: string; duration: number }>>
   >();
   private urls = new Set<string>();
   private volume = 0.7;
+  private musicVolume = 0.45;
+  setMusicVolume(volume: number) {
+    this.musicVolume = volume;
+  }
   private primer = URL.createObjectURL(
     pcmWave({
       numberOfChannels: 1,
@@ -84,15 +90,20 @@ export class NativeAudio {
         .catch(() => {});
     }
   }
-  private async file(asset: Asset) {
-    let file = this.files.get(asset.blob);
+  private async file(asset: Asset, gain = 1) {
+    let variants = this.files.get(asset.blob);
+    if (!variants) {
+      variants = new Map();
+      this.files.set(asset.blob, variants);
+    }
+    let file = variants.get(gain);
     if (!file) {
       file = this.decode(asset).then((buffer) => {
-        const url = URL.createObjectURL(pcmWave(buffer));
+        const url = URL.createObjectURL(pcmWave(buffer, gain));
         this.urls.add(url);
         return { url, duration: buffer.duration };
       });
-      this.files.set(asset.blob, file);
+      variants.set(gain, file);
     }
     return file;
   }
@@ -113,24 +124,42 @@ export class NativeAudio {
     this.volume = volume;
     for (const [kind, slot] of this.slots)
       slot.audio.volume =
-        kind === "voice" || kind === "video" ? volume : volume * 0.45;
+        kind === "music"
+          ? 1
+          : kind === "voice" || kind === "video"
+            ? volume
+            : volume * 0.45;
   }
   async play(kind: string, asset?: Asset, sceneId = "") {
     const slot = this.slots.get(kind);
     if (!slot) return;
     const key = asset
-      ? `${kind === "voice" ? sceneId : ""}:${asset.id}`
+      ? `${kind === "voice" ? sceneId : ""}:${asset.id}:${kind === "music" ? this.volume * this.musicVolume : ""}`
       : undefined;
     if (key && slot.key === key) return;
     const request = ++slot.request;
+    const resumeAt =
+      kind === "music" && slot.assetId === asset?.id
+        ? slot.audio.currentTime
+        : 0;
     this.pause(slot);
     slot.key = key;
+    slot.assetId = asset?.id;
     if (!asset) return;
-    const file = await this.file(asset);
+    const file = await this.file(
+      asset,
+      kind === "music" ? this.volume * this.musicVolume : 1,
+    );
     if (request !== slot.request) return;
     slot.audio.src = file.url;
+    slot.audio.currentTime = resumeAt;
     slot.audio.loop = kind !== "voice";
-    slot.audio.volume = kind === "voice" ? this.volume : this.volume * 0.45;
+    slot.audio.volume =
+      kind === "music"
+        ? 1
+        : kind === "voice"
+          ? this.volume
+          : this.volume * 0.45;
     slot.audio.muted = false;
     slot.audio.onended = () => this.pause(slot);
     await slot.audio.play();

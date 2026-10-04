@@ -41,12 +41,14 @@ export function Player({
   previewScene,
   back,
   standalone = false,
+  onSceneChange,
 }: {
   story: Story;
   assets: Asset[];
   previewScene?: string;
   back: () => void;
   standalone?: boolean;
+  onSceneChange?: (sceneId: string) => void;
 }) {
   const preview = previewScene !== undefined;
   const preferences = useAppearance();
@@ -76,6 +78,9 @@ export function Player({
   const queue = useRef(Promise.resolve(true));
   const locked = useRef(false);
   const scene = story.scenes.find((s) => s.id === game?.currentSceneId);
+  useEffect(() => {
+    if (scene) onSceneChange?.(scene.id);
+  }, [scene, onSceneChange]);
   const timerOnly = !!scene?.timerOnly;
   const image = useAssetUrl(
     assets.find((a) => !timerOnly && a.id === scene?.imageId),
@@ -260,7 +265,10 @@ export function Player({
       /* Settings are optional; story persistence is handled separately. */
     }
     sound.setVolume(settings.volume);
-    if (!settings.sound || menu || pageHidden || timerOnly) {
+    sound.setMusicVolume(
+      !timerOnly && scene?.musicId ? 0.45 : (story.soundtrack?.volume ?? 0.45),
+    );
+    if (!settings.sound || menu || pageHidden) {
       sound.stop();
       return;
     }
@@ -273,7 +281,16 @@ export function Player({
       void sound
         .play(
           kind,
-          assets.find((a) => a.id === scene?.[key]),
+          assets.find(
+            (a) =>
+              a.id ===
+              (timerOnly
+                ? key === "musicId"
+                  ? story.soundtrack?.assetId
+                  : undefined
+                : (scene?.[key] ??
+                  (key === "musicId" ? story.soundtrack?.assetId : undefined))),
+          ),
           scene?.id,
         )
         .catch(() => {
@@ -282,7 +299,7 @@ export function Player({
     return () => {
       current = false;
     };
-  }, [scene, settings, assets, menu, pageHidden, timerOnly]);
+  }, [scene, settings, assets, menu, pageHidden, timerOnly, story.soundtrack]);
   useEffect(() => () => sound.stop(), []);
   useEffect(() => {
     if (!scene) return;

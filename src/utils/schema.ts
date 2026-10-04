@@ -35,6 +35,9 @@ export const storySchema = z.object({
   id: z.string().min(1),
   title: z.string(),
   contentLanguage: z.string(),
+  soundtrack: z
+    .object({ assetId: z.string(), volume: z.number().finite().min(0).max(1) })
+    .optional(),
   timer: z
     .object({
       enabled: z.boolean(),

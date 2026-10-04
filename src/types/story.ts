@@ -63,6 +63,7 @@ export interface Story {
   title: string;
   contentLanguage: string;
   presentation?: Presentation;
+  soundtrack?: { assetId: string; volume: number };
   timer?: { enabled: boolean; durationSeconds: number; targetSceneId?: string };
   translations?: Record<string, StoryContent>;
   startSceneId: string;
