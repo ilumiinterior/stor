@@ -31,6 +31,104 @@ for (const ios of [false, true])
           }
         : {}),
     });
+    for (const key of ["voiceId", "musicId", "ambientId"])
+      test(`timer card plays ${key} and stops it in the following silent scene`, async ({
+        page,
+      }) => {
+        const base = {
+          position: { x: 0, y: 0 },
+          actions: [],
+          choices: [],
+          ending: false,
+          text: "",
+          name: "",
+        };
+        const story = {
+          schemaVersion: 1,
+          id: "timer-audio",
+          title: "Hodiny",
+          contentLanguage: "sk",
+          updatedAt: 1,
+          startSceneId: "timer",
+          variables: [],
+          timer: { enabled: true, durationSeconds: 600 },
+          scenes: [
+            {
+              ...base,
+              id: "timer",
+              timerOnly: true,
+              [key]: "tick",
+              autoAdvance: { delaySeconds: 2, targetSceneId: "silent" },
+            },
+            { ...base, id: "silent", text: "Tichá scéna" },
+          ],
+        };
+        const zip = new JSZip();
+        zip.file("assets/audio/tick", wave);
+        zip.file(
+          "story.json",
+          JSON.stringify({
+            story,
+            assets: [
+              {
+                id: "tick",
+                name: "tick.wav",
+                kind: "audio",
+                mime: "audio/wav",
+                path: "assets/audio/tick",
+              },
+            ],
+          }),
+        );
+        const body = await zip.generateAsync({ type: "nodebuffer" });
+        await page.route("**/game.story", (route) =>
+          route.fulfill({ status: 200, body }),
+        );
+        await page.addInitScript(() => {
+          const outputs = new Set<HTMLAudioElement>();
+          const gains: AnalyserNode[] = [];
+          const play = HTMLMediaElement.prototype.play;
+          HTMLMediaElement.prototype.play = function () {
+            if (this instanceof HTMLAudioElement) outputs.add(this);
+            return play.call(this);
+          };
+          const create = AudioContext.prototype.createGain;
+          AudioContext.prototype.createGain = function () {
+            const node = create.call(this),
+              analyser = this.createAnalyser();
+            node.connect(analyser);
+            gains.push(analyser);
+            return node;
+          };
+          Object.assign(window, {
+            timerAudioProbe: () => {
+              if (outputs.size)
+                return [...outputs].some(
+                  (a) => !a.paused && !a.muted && a.currentTime > 0.15,
+                );
+              return gains.some((analyser) => {
+                const samples = new Float32Array(analyser.fftSize);
+                analyser.getFloatTimeDomainData(samples);
+                return samples.some((value) => Math.abs(value) > 0.05);
+              });
+            },
+          });
+        });
+        const audible = () =>
+          page.evaluate(() =>
+            (
+              window as unknown as { timerAudioProbe: () => boolean }
+            ).timerAudioProbe(),
+          );
+        await page.goto("/");
+        await page
+          .getByRole("button", { name: "Začať odznova", exact: true })
+          .click();
+        await expect(page.getByRole("timer")).toBeVisible();
+        await expect.poll(audible).toBe(true);
+        await expect(page.locator(".story-prose")).toHaveText("Tichá scéna");
+        await expect.poll(audible).toBe(false);
+      });
     test("global music keeps playing across cards at its configured volume", async ({
       page,
     }) => {

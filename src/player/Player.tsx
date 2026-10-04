@@ -271,7 +271,7 @@ export function Player({
     }
     sound.setVolume(settings.volume);
     sound.setMusicVolume(
-      !timerOnly && scene?.musicId
+      scene?.musicId
         ? 0.45
         : (story.soundtrack?.volume ?? 0.45) * settings.soundtrackVolume,
     );
@@ -291,12 +291,8 @@ export function Player({
           assets.find(
             (a) =>
               a.id ===
-              (timerOnly
-                ? key === "musicId"
-                  ? story.soundtrack?.assetId
-                  : undefined
-                : (scene?.[key] ??
-                  (key === "musicId" ? story.soundtrack?.assetId : undefined))),
+              (scene?.[key] ??
+                (key === "musicId" ? story.soundtrack?.assetId : undefined)),
           ),
           scene?.id,
         )
