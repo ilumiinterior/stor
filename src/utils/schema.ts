@@ -120,6 +120,18 @@ export const storySchema = z.object({
           enabled: z.boolean(),
           secondText: z.string(),
           durationSeconds: z.number().finite().min(1).max(3600),
+          firstDurationSeconds: z
+            .number()
+            .finite()
+            .min(0.1)
+            .max(3600)
+            .optional(),
+          secondDurationSeconds: z
+            .number()
+            .finite()
+            .min(0.1)
+            .max(3600)
+            .optional(),
         })
         .optional(),
       actions: z.array(action),

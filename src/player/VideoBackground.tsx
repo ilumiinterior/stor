@@ -16,6 +16,7 @@ export function VideoBackground({
   onFailure,
   controls = true,
   onProgress,
+  onRecovery,
 }: {
   asset: Asset;
   poster: string;
@@ -28,7 +29,8 @@ export function VideoBackground({
   onComplete?: () => void;
   onFailure?: () => void;
   controls?: boolean;
-  onProgress?: (assetId: string, fraction: number) => void;
+  onProgress?: (assetId: string, fraction: number, seconds: number) => void;
+  onRecovery?: () => void;
 }) {
   const url = useAssetUrl(asset);
   const video = useRef<HTMLVideoElement>(null);
@@ -126,10 +128,18 @@ export function VideoBackground({
         aria-label={asset.name}
         style={failed ? { visibility: "hidden" } : undefined}
         onPlay={() => setPlaying(true)}
+        onPlaying={() => {
+          setBlocked(false);
+          onRecovery?.();
+        }}
         onTimeUpdate={(e) => {
           const element = e.currentTarget;
           if (Number.isFinite(element.duration) && element.duration > 0)
-            onProgress?.(asset.id, element.currentTime / element.duration);
+            onProgress?.(
+              asset.id,
+              element.currentTime / element.duration,
+              element.currentTime,
+            );
         }}
         onPause={() => setPlaying(false)}
         onEnded={() => {
@@ -147,7 +157,7 @@ export function VideoBackground({
         onLoadedData={() => {
           setFailed(false);
           onReady(true);
-          onProgress?.(asset.id, 0);
+          onProgress?.(asset.id, 0, 0);
         }}
       />
       {active && controls && (

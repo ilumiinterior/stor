@@ -87,6 +87,71 @@ test("six-second scene shows text for three seconds each and pauses in the backg
   await page.getByRole("button", { name: /Zopakovať/ }).click();
   await expect(page.locator(".story-prose")).toHaveText("Prvá časť");
 });
+test("manual text durations do not cut a video short after autoplay recovery", async ({
+  page,
+}) => {
+  const zip = await JSZip.loadAsync(await readFile("public/game.story"));
+  const raw = JSON.parse(await zip.file("story.json")!.async("string"));
+  const scene = raw.story.scenes.find(
+    (s: { name: string }) => s.name === "Neber si to osobne",
+  );
+  test.skip(!scene?.videoId, "No video fixture.");
+  raw.story.startSceneId = scene.id;
+  scene.autoAdvance.delaySeconds = 1;
+  scene.text = "Krátka prvá";
+  scene.textSequence = {
+    enabled: true,
+    secondText: "Krátka druhá",
+    durationSeconds: 6,
+    firstDurationSeconds: 0.5,
+    secondDurationSeconds: 0.5,
+  };
+  zip.file("story.json", JSON.stringify(raw));
+  const body = await zip.generateAsync({ type: "nodebuffer" });
+  await page.route("**/game.story", (route) =>
+    route.fulfill({ status: 200, body }),
+  );
+  await page.addInitScript(() => {
+    let rejected = false;
+    const play = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function () {
+      if (this instanceof HTMLVideoElement && !rejected) {
+        rejected = true;
+        setTimeout(() => {
+          Object.defineProperty(document, "hidden", {
+            configurable: true,
+            value: true,
+          });
+          document.dispatchEvent(new Event("visibilitychange"));
+        }, 100);
+        setTimeout(() => {
+          Object.defineProperty(document, "hidden", {
+            configurable: true,
+            value: false,
+          });
+          document.dispatchEvent(new Event("visibilitychange"));
+        }, 300);
+        return Promise.reject(
+          new DOMException("Initial autoplay denied", "NotAllowedError"),
+        );
+      }
+      return play.call(this);
+    };
+  });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Začať odznova", exact: true })
+    .click();
+  await expect(page.locator(".story-prose")).toHaveText("Krátka druhá", {
+    timeout: 2500,
+  });
+  await expect(page.locator(".story-prose")).toHaveCount(0);
+  const video = page.locator(".player-video");
+  await expect
+    .poll(() => video.evaluate((el) => (el as HTMLVideoElement).currentTime))
+    .toBeGreaterThan(2);
+  await expect(video).toHaveCount(0, { timeout: 4000 });
+});
 test("video text changes at the video's midpoint rather than the fallback scene duration", async ({
   page,
 }) => {

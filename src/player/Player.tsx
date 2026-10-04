@@ -90,11 +90,16 @@ export function Player({
   const [videoProgress, setVideoProgress] = useState({
     assetId: "",
     fraction: 0,
+    seconds: 0,
   });
   const textSceneKey = `${scene?.id}:${game?.history.length}`;
   const reportVideoProgress = useCallback(
-    (assetId: string, fraction: number) =>
-      setVideoProgress({ assetId: `${textSceneKey}:${assetId}`, fraction }),
+    (assetId: string, fraction: number, seconds: number) =>
+      setVideoProgress({
+        assetId: `${textSceneKey}:${assetId}`,
+        fraction,
+        seconds,
+      }),
     [textSceneKey],
   );
   const staticTextPart = useTextPart(
@@ -104,13 +109,25 @@ export function Player({
       scene?.textSequence?.durationSeconds ??
       6,
     menu || pageHidden,
+    scene?.textSequence?.firstDurationSeconds,
+    scene?.textSequence?.secondDurationSeconds,
   );
   const textPart =
     videoAsset && !videoFailed
-      ? videoProgress.assetId === `${textSceneKey}:${videoAsset.id}` &&
-        videoProgress.fraction >= 0.5
-        ? 1
-        : 0
+      ? videoProgress.assetId !== `${textSceneKey}:${videoAsset.id}`
+        ? 0
+        : scene?.textSequence?.firstDurationSeconds !== undefined
+          ? scene.textSequence.secondDurationSeconds !== undefined &&
+            videoProgress.seconds >=
+              scene.textSequence.firstDurationSeconds +
+                scene.textSequence.secondDurationSeconds
+            ? 2
+            : videoProgress.seconds >= scene.textSequence.firstDurationSeconds
+              ? 1
+              : 0
+          : videoProgress.fraction >= 0.5
+            ? 1
+            : 0
       : staticTextPart;
   const hasGame = !!game;
   useEffect(() => {
@@ -358,6 +375,7 @@ export function Player({
     void decision();
   }, [decision]);
   const failVideo = useCallback(() => setVideoFailed(true), []);
+  const recoverVideo = useCallback(() => setVideoFailed(false), []);
   useEffect(() => {
     if (!scene || !automaticValid) return;
     if (automaticClock.current.sceneId !== scene.id)
@@ -467,6 +485,7 @@ export function Player({
           onFailure={failVideo}
           controls={!automatic}
           onProgress={reportVideoProgress}
+          onRecovery={recoverVideo}
         />
       )}
       <div className="player-shade" />
@@ -696,11 +715,13 @@ export function Player({
           {presentation.showSceneNames && (
             <span className="eyebrow">{scene.name}</span>
           )}
-          <p className="story-prose">
-            {scene.textSequence?.enabled && textPart === 1
-              ? scene.textSequence.secondText
-              : scene.text}
-          </p>
+          {!(scene.textSequence?.enabled && textPart === 2) && (
+            <p className="story-prose">
+              {scene.textSequence?.enabled && textPart === 1
+                ? scene.textSequence.secondText
+                : scene.text}
+            </p>
+          )}
           <div
             className={`player-choices${choicesHighlighted ? " is-highlighted" : ""}`}
           >

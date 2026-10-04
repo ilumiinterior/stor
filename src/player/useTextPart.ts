@@ -5,6 +5,8 @@ export function useTextPart(
   enabled: boolean,
   durationSeconds: number,
   paused: boolean,
+  firstDurationSeconds?: number,
+  secondDurationSeconds?: number,
 ) {
   const clock = useRef({ sceneId, elapsed: 0 });
   const [part, setPart] = useState({ sceneId, index: 0 });
@@ -14,11 +16,16 @@ export function useTextPart(
     if (!enabled || paused) return;
     const started = performance.now();
     const tick = () => {
+      const elapsed =
+        (clock.current.elapsed + performance.now() - started) / 1000;
+      const first = firstDurationSeconds ?? durationSeconds / 2;
       const index =
-        clock.current.elapsed + performance.now() - started >=
-        durationSeconds * 500
-          ? 1
-          : 0;
+        secondDurationSeconds !== undefined &&
+        elapsed >= first + secondDurationSeconds
+          ? 2
+          : elapsed >= first
+            ? 1
+            : 0;
       setPart((previous) =>
         previous.sceneId === sceneId && previous.index === index
           ? previous
@@ -31,6 +38,13 @@ export function useTextPart(
       window.clearInterval(interval);
       clock.current.elapsed += performance.now() - started;
     };
-  }, [sceneId, enabled, durationSeconds, paused]);
+  }, [
+    sceneId,
+    enabled,
+    durationSeconds,
+    paused,
+    firstDurationSeconds,
+    secondDurationSeconds,
+  ]);
   return part.sceneId === sceneId ? part.index : 0;
 }

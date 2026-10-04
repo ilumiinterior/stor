@@ -46,6 +46,8 @@ export interface Scene {
     enabled: boolean;
     secondText: string;
     durationSeconds: number;
+    firstDurationSeconds?: number;
+    secondDurationSeconds?: number;
   };
 }
 export interface StoryContent {
