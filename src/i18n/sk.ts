@@ -1,4 +1,20 @@
 export const sk = {
+  mainMenu: {
+    title: "Hlavné menu",
+    background: "Pozadie hlavného menu",
+    upload: "Nahrať pozadie menu",
+    layout: "Vlastné rozmiestnenie tlačidiel",
+    button: "Upravované tlačidlo",
+    column: "Stĺpec",
+    row: "Riadok",
+    width: "Šírka (políčka)",
+    height: "Výška (políčka)",
+    reset: "Obnoviť rozmiestnenie",
+    hint: "Mriežka 12 × 12. Vyberte tlačidlo a kliknite na políčko alebo ho presuňte. Presné umiestnenie upravíte číslami. Tlačidlá sa nesmú prekrývať.",
+    cell: "Políčko: riadok {row}, stĺpec {column}",
+    overlap: "Tlačidlá sa prekrývajú. Zvoľte voľné miesto.",
+    backgroundHint: "Obrázok alebo video pre menu. Video sa opakuje bez zvuku.",
+  },
   soundtrack: {
     title: "Soundtrack celej hry",
     track: "Globálna hudba",

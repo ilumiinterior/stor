@@ -63,6 +63,11 @@ export interface StoryContent {
   >;
 }
 export interface Story {
+  mainMenu?: {
+    backgroundId?: string;
+    customLayout: boolean;
+    buttons: Partial<Record<MenuButtonId, MenuButtonPosition>>;
+  };
   schemaVersion: 1;
   id: string;
   title: string;
@@ -75,6 +80,13 @@ export interface Story {
   scenes: Scene[];
   variables: StoryVariable[];
   updatedAt: number;
+}
+export type MenuButtonId = "continue" | "newStory" | "loadGame" | "settings";
+export interface MenuButtonPosition {
+  column: number;
+  row: number;
+  width: number;
+  height: number;
 }
 export interface Asset {
   id: string;

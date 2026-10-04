@@ -30,7 +30,27 @@ const condition = z.object({
   operator: z.enum(["eq", "ne", "gt", "gte", "lt", "lte"]),
   value,
 });
+const menuPosition = z
+  .object({
+    column: z.number().int().min(1).max(12),
+    row: z.number().int().min(1).max(12),
+    width: z.number().int().min(1).max(12),
+    height: z.number().int().min(1).max(12),
+  })
+  .refine((p) => p.column + p.width <= 13 && p.row + p.height <= 13);
 export const storySchema = z.object({
+  mainMenu: z
+    .object({
+      backgroundId: z.string().optional(),
+      customLayout: z.boolean(),
+      buttons: z.object({
+        continue: menuPosition.optional(),
+        newStory: menuPosition.optional(),
+        loadGame: menuPosition.optional(),
+        settings: menuPosition.optional(),
+      }),
+    })
+    .optional(),
   schemaVersion: z.literal(1),
   id: z.string().min(1),
   title: z.string(),

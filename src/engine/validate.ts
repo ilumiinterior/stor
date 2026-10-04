@@ -7,6 +7,15 @@ export interface Warning {
 export function validate(story: Story, assets: Asset[]): Warning[] {
   const warnings: Warning[] = [];
   if (
+    story.mainMenu?.backgroundId &&
+    !assets.some(
+      (a) =>
+        a.id === story.mainMenu?.backgroundId &&
+        (a.kind === "image" || a.kind === "video"),
+    )
+  )
+    warnings.push({ key: "debug.missingAsset" });
+  if (
     story.soundtrack &&
     !assets.some(
       (a) =>

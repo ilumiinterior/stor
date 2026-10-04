@@ -20,6 +20,9 @@ import { VideoBackground } from "./VideoBackground";
 import { colorStyle } from "../utils/colors";
 import { version } from "../../package.json";
 import { useTextPart } from "./useTextPart";
+import { MenuBackground } from "./MenuBackground";
+import { menuGridStyle, menuPosition } from "../utils/mainMenu";
+import type { MenuButtonId } from "../types/story";
 function readSettings() {
   try {
     const raw = JSON.parse(localStorage.getItem("vetvy.settings") ?? "{}");
@@ -487,6 +490,15 @@ export function Player({
   const exit = async () => {
     if (await save()) back();
   };
+  const menuAsset = assets.find(
+    (a) =>
+      a.id === story.mainMenu?.backgroundId &&
+      (a.kind === "image" || a.kind === "video"),
+  );
+  const buttonStyle = (id: MenuButtonId) =>
+    story.mainMenu?.customLayout
+      ? menuGridStyle(menuPosition(story, id))
+      : undefined;
   return (
     <main
       className={`player-shell ${settings.large ? "large-text" : ""}`}
@@ -499,7 +511,8 @@ export function Player({
       )}
       data-font={font}
     >
-      {!timerOnly &&
+      {!(menu && menuAsset) &&
+        !timerOnly &&
         backgrounds.map((url, i) => (
           <div
             key={url}
@@ -511,7 +524,7 @@ export function Player({
             }}
           />
         ))}
-      {videoAsset && (
+      {videoAsset && !(menu && menuAsset) && (
         <VideoBackground
           key={`${scene?.id}:${videoAsset.id}`}
           asset={videoAsset}
@@ -529,6 +542,7 @@ export function Player({
           onRecovery={recoverVideo}
         />
       )}
+      {menu && menuAsset && <MenuBackground asset={menuAsset} />}
       <div className="player-shade" />
       {story.timer?.enabled &&
         game &&
@@ -582,15 +596,20 @@ export function Player({
       {!ready ? (
         <p className="player-loading">{t("app.loading")}</p>
       ) : menu ? (
-        <div className="player-menu">
+        <div
+          className={`player-menu${page === "main" && story.mainMenu?.customLayout ? " custom-main-menu" : ""}`}
+        >
           <span className="eyebrow">
             {preview ? t("player.preview") : t("app.name")}
           </span>
           <h1>{story.title}</h1>
           {page === "main" && (
-            <div className="menu-buttons">
+            <div
+              className={`menu-buttons${story.mainMenu?.customLayout ? " menu-grid" : ""}`}
+            >
               <button
                 className="primary"
+                style={buttonStyle("continue")}
                 disabled={!game && !auto}
                 onClick={() =>
                   game
@@ -601,6 +620,7 @@ export function Player({
                 {t("player.continue")} <span>→</span>
               </button>
               <button
+                style={buttonStyle("newStory")}
                 disabled={
                   !story.scenes.some((s) => s.id === story.startSceneId)
                 }
@@ -609,11 +629,17 @@ export function Player({
                 {t("player.newStory")}
               </button>
               {!preview && (
-                <button onClick={() => setPage("saves")}>
+                <button
+                  style={buttonStyle("loadGame")}
+                  onClick={() => setPage("saves")}
+                >
                   {t("player.loadGame")}
                 </button>
               )}
-              <button onClick={() => setPage("settings")}>
+              <button
+                style={buttonStyle("settings")}
+                onClick={() => setPage("settings")}
+              >
                 {t("player.settings")}
               </button>
               <small>

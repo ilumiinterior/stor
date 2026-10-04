@@ -9,6 +9,7 @@ export default defineConfig({
     "timer.spec.ts",
     "text-sequence.spec.ts",
     "soundtrack.spec.ts",
+    "main-menu.spec.ts",
   ],
   workers: 1,
   use: {
