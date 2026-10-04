@@ -6,6 +6,11 @@ export interface Warning {
 }
 export function validate(story: Story, assets: Asset[]): Warning[] {
   const warnings: Warning[] = [];
+  if (
+    story.timer?.enabled &&
+    !story.scenes.some((s) => s.id === story.timer?.targetSceneId && s.ending)
+  )
+    warnings.push({ key: "timer.missingTarget" });
   const ids = new Set(story.scenes.map((s) => s.id));
   const seen = new Set<string>();
   const reachable = new Set<string>();
@@ -18,6 +23,8 @@ export function validate(story: Story, assets: Asset[]): Warning[] {
     else scene?.choices.forEach((c) => visit(c.targetSceneId));
   };
   visit(story.startSceneId);
+  if (story.timer?.enabled && story.timer.targetSceneId)
+    visit(story.timer.targetSceneId);
   if (!ids.has(story.startSceneId)) warnings.push({ key: "debug.start" });
   if (!story.scenes.some((s) => s.ending))
     warnings.push({ key: "debug.noEnding" });

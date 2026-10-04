@@ -17,6 +17,7 @@ export const saveGameSchema = z.object({
     }),
   ),
   playTime: z.number().finite().nonnegative(),
+  timerElapsedMs: z.number().finite().nonnegative().optional(),
   timestamp: z.number().finite(),
 });
 const action = z.object({
@@ -34,6 +35,13 @@ export const storySchema = z.object({
   id: z.string().min(1),
   title: z.string(),
   contentLanguage: z.string(),
+  timer: z
+    .object({
+      enabled: z.boolean(),
+      durationSeconds: z.number().int().min(1).max(86400),
+      targetSceneId: z.string().optional(),
+    })
+    .optional(),
   presentation: z
     .object({
       showSceneNames: z.boolean(),
@@ -105,6 +113,7 @@ export const storySchema = z.object({
       musicId: z.string().optional(),
       ambientId: z.string().optional(),
       ending: z.boolean(),
+      showTimer: z.boolean().optional(),
       actions: z.array(action),
       choices: z.array(
         z.object({

@@ -40,6 +40,7 @@ export interface Scene {
   choices: Choice[];
   actions: VariableAction[];
   ending: boolean;
+  showTimer?: boolean;
 }
 export interface StoryContent {
   title: string;
@@ -54,6 +55,7 @@ export interface Story {
   title: string;
   contentLanguage: string;
   presentation?: Presentation;
+  timer?: { enabled: boolean; durationSeconds: number; targetSceneId?: string };
   translations?: Record<string, StoryContent>;
   startSceneId: string;
   scenes: Scene[];
@@ -78,5 +80,6 @@ export interface SaveGame {
   visitedScenes: string[];
   history: { sceneId: string; choiceId: string; timestamp: number }[];
   playTime: number;
+  timerElapsedMs?: number;
   timestamp: number;
 }

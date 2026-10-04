@@ -1,4 +1,15 @@
 export const sk = {
+  timer: {
+    title: "Odpočet hry",
+    enabled: "Zapnúť odpočet",
+    minutes: "Dĺžka odpočtu (minúty)",
+    show: "Zobraziť odpočet v tejto scéne",
+    hint: "Odpočet začne s novou hrou. V menu, na pozadí a v koncovej scéne sa pozastaví. Skrytie v scéne ho nezastaví.",
+    remaining: "Zostávajúci čas",
+    expired: "Čas vypršal",
+    target: "Koncová scéna po vypršaní času",
+    missingTarget: "Vyberte koncovú scénu pre odpočet.",
+  },
   appearance: {
     backgroundColor: "Farba pozadia UI",
     accentColor: "Farba zvýraznenia UI",

@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Story, Asset, SaveGame, Choice } from "../types/story";
 import { t } from "../i18n";
-import { advance, begin, choose, meets, validSave } from "../engine";
+import {
+  advance,
+  begin,
+  choose,
+  expireTimer,
+  meets,
+  validSave,
+} from "../engine";
 import { db } from "../database";
 import { useAssetUrl } from "./useAssetUrl";
 import { sound } from "./audio";
@@ -64,6 +71,7 @@ export function Player({
   const gameRef = useRef(game);
   const clock = useRef(performance.now());
   const active = useRef(false);
+  const [timerTick, setTimerTick] = useState(performance.now());
   const queue = useRef(Promise.resolve(true));
   const locked = useRef(false);
   const scene = story.scenes.find((s) => s.id === game?.currentSceneId);
@@ -75,6 +83,15 @@ export function Player({
   const [choicesHighlighted, setChoicesHighlighted] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
   const [pageHidden, setPageHidden] = useState(document.hidden);
+  const hasGame = !!game;
+  useEffect(() => {
+    if (!story.timer?.enabled || !hasGame || menu || pageHidden) return;
+    const interval = window.setInterval(
+      () => setTimerTick(performance.now()),
+      250,
+    );
+    return () => window.clearInterval(interval);
+  }, [story.timer?.enabled, hasGame, menu, pageHidden]);
   const automaticClock = useRef({ sceneId: "", remaining: 0 });
   useEffect(() => {
     const listener = () => setPageHidden(document.hidden);
@@ -108,6 +125,11 @@ export function Player({
       const current = {
         ...source,
         playTime: source.playTime + elapsed,
+        timerElapsedMs:
+          (source.timerElapsedMs ?? source.playTime) +
+          (story.scenes.find((s) => s.id === source.currentSceneId)?.ending
+            ? 0
+            : elapsed),
         timestamp: Date.now(),
       };
       gameRef.current = current;
@@ -130,7 +152,7 @@ export function Player({
         });
       return queue.current;
     },
-    [preview, story.id],
+    [preview, story],
   );
   useEffect(() => {
     let mounted = true;
@@ -261,7 +283,7 @@ export function Player({
     void save(0, next);
   }
   const decision = useCallback(
-    async (choice?: Choice) => {
+    async (choice?: Choice, timedOut = false) => {
       if (locked.current || !gameRef.current) return;
       if (choice) sound.unlock();
       locked.current = true;
@@ -272,11 +294,20 @@ export function Player({
           playTime:
             gameRef.current.playTime +
             (active.current ? now - clock.current : 0),
+          timerElapsedMs:
+            (gameRef.current.timerElapsedMs ?? gameRef.current.playTime) +
+            (active.current &&
+            !story.scenes.find((s) => s.id === gameRef.current?.currentSceneId)
+              ?.ending
+              ? now - clock.current
+              : 0),
         };
         clock.current = now;
-        const next = choice
-          ? choose(story, previous, choice)
-          : advance(story, previous);
+        const next = timedOut
+          ? expireTimer(story, previous)
+          : choice
+            ? choose(story, previous, choice)
+            : advance(story, previous);
         gameRef.current = next;
         setGame(next);
         await save(0, next);
@@ -327,6 +358,44 @@ export function Player({
     decision,
   ]);
   const auto = slots.find((s) => s.slot === 0);
+  const timerSource = gameRef.current ?? game;
+  const remainingSeconds = Math.max(
+    0,
+    Math.ceil(
+      ((story.timer?.durationSeconds ?? 0) * 1000 -
+        (timerSource?.timerElapsedMs ?? timerSource?.playTime ?? 0) -
+        (active.current && !menu && !pageHidden && !scene?.ending
+          ? Math.max(0, timerTick - clock.current)
+          : 0)) /
+        1000,
+    ),
+  );
+  const timerTargetValid = story.scenes.some(
+    (s) => s.id === story.timer?.targetSceneId && s.ending,
+  );
+  useEffect(() => {
+    if (
+      story.timer?.enabled &&
+      game &&
+      !menu &&
+      !pageHidden &&
+      !scene?.ending &&
+      remainingSeconds === 0 &&
+      timerTargetValid
+    )
+      void decision(undefined, true);
+  }, [
+    story.timer?.enabled,
+    game,
+    menu,
+    pageHidden,
+    scene?.ending,
+    remainingSeconds,
+    timerTargetValid,
+    decision,
+    timerTick,
+  ]);
+  const timerDisplay = `${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${String(remainingSeconds % 60).padStart(2, "0")}`;
   const exit = async () => {
     if (await save()) back();
   };
@@ -370,6 +439,24 @@ export function Player({
         />
       )}
       <div className="player-shade" />
+      {story.timer?.enabled &&
+        game &&
+        !menu &&
+        scene &&
+        (scene.showTimer ?? !scene.ending) && (
+          <div
+            className={`player-countdown${remainingSeconds <= 60 ? " is-low" : ""}`}
+            role="timer"
+            aria-label={t("timer.remaining")}
+          >
+            <span>
+              {remainingSeconds === 0
+                ? t("timer.expired")
+                : t("timer.remaining")}
+            </span>
+            <strong>{timerDisplay}</strong>
+          </div>
+        )}
       {(!automatic || menu) && (
         <header className="player-top">
           {(!standalone || !menu) && (

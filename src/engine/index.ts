@@ -60,6 +60,7 @@ export function begin(story: Story, sceneId = story.startSceneId): SaveGame {
     visitedScenes: [sceneId],
     history: [],
     playTime: 0,
+    timerElapsedMs: 0,
     timestamp: Date.now(),
   };
 }
@@ -113,6 +114,28 @@ export function advance(story: Story, save: SaveGame): SaveGame {
       {
         sceneId: save.currentSceneId,
         choiceId: "@auto",
+        timestamp: Date.now(),
+      },
+    ],
+    timestamp: Date.now(),
+  };
+}
+export function expireTimer(story: Story, save: SaveGame): SaveGame {
+  const target = story.scenes.find(
+    (s) => s.id === story.timer?.targetSceneId && s.ending,
+  );
+  if (!story.timer?.enabled || !target || target.id === save.currentSceneId)
+    throw Error("invalid-timer-target");
+  return {
+    ...save,
+    currentSceneId: target.id,
+    variables: act(save.variables, target.actions),
+    visitedScenes: [...new Set([...save.visitedScenes, target.id])],
+    history: [
+      ...save.history,
+      {
+        sceneId: save.currentSceneId,
+        choiceId: "@timer",
         timestamp: Date.now(),
       },
     ],

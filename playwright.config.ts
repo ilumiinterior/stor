@@ -6,6 +6,7 @@ export default defineConfig({
     "player.offline.spec.ts",
     "media.playback.spec.ts",
     "mobile.audio.spec.ts",
+    "timer.spec.ts",
   ],
   workers: 1,
   use: {
