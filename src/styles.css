@@ -852,11 +852,11 @@ audio {
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
-  padding: 8px 11px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  color: var(--text);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
   pointer-events: none;
 }
 .player-countdown span {
@@ -889,6 +889,23 @@ audio {
 .player-top button {
   background: color-mix(in srgb, var(--button-bg) 85%, transparent);
   border-color: var(--line);
+}
+.player-top .player-menu-symbol {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  font:
+    300 1.5rem "Manrope",
+    sans-serif;
+  justify-content: center;
+}
+.player-top .player-menu-symbol:hover {
+  background: transparent;
+  color: #fff;
 }
 .player-top > span {
   font-size: 0.7rem;

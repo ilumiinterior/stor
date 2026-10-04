@@ -543,13 +543,6 @@ export function Player({
             role="timer"
             aria-label={t("timer.remaining")}
           >
-            {!centeredTimer && (
-              <span>
-                {remainingSeconds === 0
-                  ? t("timer.expired")
-                  : t("timer.remaining")}
-              </span>
-            )}
             <strong>{timerDisplay}</strong>
           </div>
         )}
@@ -557,6 +550,8 @@ export function Player({
         <header className="player-top">
           {(!standalone || !menu) && (
             <button
+              className={!menu ? "player-menu-symbol" : undefined}
+              aria-label={!menu ? t("player.menu") : undefined}
               onClick={() => {
                 if (menu) void exit();
                 else {
@@ -570,7 +565,7 @@ export function Player({
                 ? preview
                   ? t("player.returnEditor")
                   : t("app.back")
-                : t("player.menu")}
+                : t("player.menuSymbol")}
             </button>
           )}
           <span>{preview ? t("player.preview") : story.title}</span>

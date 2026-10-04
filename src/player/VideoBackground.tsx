@@ -34,7 +34,6 @@ export function VideoBackground({
 }) {
   const url = useAssetUrl(asset);
   const video = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
   const [audioFailed, setAudioFailed] = useState(false);
@@ -100,19 +99,14 @@ export function VideoBackground({
   async function toggle() {
     const element = video.current;
     if (!element) return;
-    if (playing) {
-      setManualPause(true);
-      element.pause();
-    } else {
-      soundEngine.unlock();
-      setChoicePause(false);
-      setManualPause(false);
-      try {
-        await element.play();
-        setBlocked(false);
-      } catch {
-        setBlocked(true);
-      }
+    soundEngine.unlock();
+    setChoicePause(false);
+    setManualPause(false);
+    try {
+      await element.play();
+      setBlocked(false);
+    } catch {
+      setBlocked(true);
     }
   }
   return (
@@ -127,7 +121,6 @@ export function VideoBackground({
         preload="auto"
         aria-label={asset.name}
         style={failed ? { visibility: "hidden" } : undefined}
-        onPlay={() => setPlaying(true)}
         onPlaying={() => {
           setBlocked(false);
           onRecovery?.();
@@ -141,9 +134,7 @@ export function VideoBackground({
               element.currentTime,
             );
         }}
-        onPause={() => setPlaying(false)}
         onEnded={() => {
-          setPlaying(false);
           if (onComplete) onComplete();
           else setChoicePause(true);
         }}
@@ -160,23 +151,14 @@ export function VideoBackground({
           onProgress?.(asset.id, 0, 0);
         }}
       />
-      {active && controls && (
+      {active && controls && (failed || blocked || manualPause) && (
         <div className="player-video-controls">
           {failed ? (
             <span role="alert">{t("player.videoUnsupported")}</span>
           ) : (
             <>
-              <button
-                disabled={choicePause && loop}
-                onClick={() => void toggle()}
-              >
-                {t(
-                  choicePause && loop
-                    ? "player.videoChoicePause"
-                    : playing
-                      ? "player.pauseVideo"
-                      : "player.playVideo",
-                )}
+              <button onClick={() => void toggle()}>
+                {t("player.playVideo")}
               </button>
               {blocked && (
                 <small role="status">{t("player.videoAutoplay")}</small>

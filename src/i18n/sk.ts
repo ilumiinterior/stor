@@ -221,6 +221,7 @@ export const sk = {
     loadGame: "Načítať hru",
     settings: "Nastavenia",
     menu: "Ponuka",
+    menuSymbol: "I",
     saveGame: "Uložiť hru",
     auto: "Automatické uloženie",
     slot: "Pozícia {number}",

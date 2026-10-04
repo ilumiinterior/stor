@@ -37,7 +37,7 @@ test("timed centered timer appears over an image, pauses in menu and resets on r
       {
         ...base,
         id: "disabled",
-        showTimer: false,
+        showTimer: true,
         timerOverlay: { ...overlay, enabled: false },
         choices: [
           { id: "back", text: "Znovu", targetSceneId: "image", actions: [] },
@@ -87,7 +87,22 @@ test("timed centered timer appears over an image, pauses in menu and resets on r
   await expect(page.getByRole("timer")).toHaveCount(0);
   await page.getByRole("button", { name: /Ďalej/ }).click();
   await page.clock.fastForward(1500);
-  await expect(page.getByRole("timer")).toHaveCount(0);
+  await expect(page.getByRole("timer")).toHaveText(/^\d{2}:\d{2}$/);
+  await expect(page.getByRole("timer")).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
+  await expect(page.getByRole("timer")).toHaveCSS("border-top-width", "0px");
+  await expect(page.getByRole("timer")).toHaveCSS(
+    "color",
+    "rgb(255, 255, 255)",
+  );
+  await expect(
+    page.getByRole("button", { name: "Ponuka", exact: true }),
+  ).toHaveText("I");
+  await expect(
+    page.getByRole("button", { name: "Ponuka", exact: true }),
+  ).toHaveCSS("border-top-width", "0px");
   await page.getByRole("button", { name: /Znovu/ }).click();
   await expect(page.getByRole("timer")).toHaveCount(0);
   await page.clock.fastForward(1100);
@@ -99,11 +114,12 @@ test("timer overlays a playing video for two seconds without interrupting it", a
 }) => {
   const zip = await JSZip.loadAsync(await readFile("public/game.story"));
   const raw = JSON.parse(await zip.file("story.json")!.async("string"));
-  const scene = raw.story.scenes.find(
-    (s: { name: string }) => s.name === "Neber si to osobne",
-  );
+  const scene = raw.story.scenes.find((s: { videoId?: string }) => !!s.videoId);
   expect(scene?.videoId).toBeTruthy();
   raw.story.startSceneId = scene.id;
+  delete scene.autoAdvance;
+  scene.ending = false;
+  scene.timerOnly = false;
   raw.story.timer = { enabled: true, durationSeconds: 600 };
   scene.showTimer = false;
   scene.timerOverlay = { enabled: true, startSeconds: 0, durationSeconds: 2 };
@@ -123,6 +139,10 @@ test("timer overlays a playing video for two seconds without interrupting it", a
   expect(await video.evaluate((el) => (el as HTMLVideoElement).paused)).toBe(
     false,
   );
+  await expect(
+    page.getByRole("button", { name: "Pozastaviť video", exact: true }),
+  ).toHaveCount(0);
+  await page.screenshot({ path: ".verification/player-clean-controls.png" });
 });
 test("timer-only interlude shows only the global countdown and advances after its duration", async ({
   page,
