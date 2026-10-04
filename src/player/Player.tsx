@@ -30,9 +30,14 @@ function readSettings() {
           ? Math.max(0, Math.min(1, raw.volume))
           : 0.7,
       large: raw.large === true,
+      soundtrackVolume:
+        typeof raw.soundtrackVolume === "number" &&
+        Number.isFinite(raw.soundtrackVolume)
+          ? Math.max(0, Math.min(1, raw.soundtrackVolume))
+          : 1,
     };
   } catch {
-    return { sound: true, volume: 0.7, large: false };
+    return { sound: true, volume: 0.7, soundtrackVolume: 1, large: false };
   }
 }
 export function Player({
@@ -266,7 +271,9 @@ export function Player({
     }
     sound.setVolume(settings.volume);
     sound.setMusicVolume(
-      !timerOnly && scene?.musicId ? 0.45 : (story.soundtrack?.volume ?? 0.45),
+      !timerOnly && scene?.musicId
+        ? 0.45
+        : (story.soundtrack?.volume ?? 0.45) * settings.soundtrackVolume,
     );
     if (!settings.sound || menu || pageHidden) {
       sound.stop();
@@ -690,6 +697,27 @@ export function Player({
                   }
                 />
               </label>
+              {story.soundtrack && (
+                <label className="field">
+                  <span>
+                    {t("soundtrack.volume")} ·{" "}
+                    {Math.round(settings.soundtrackVolume * 100)} %
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={settings.soundtrackVolume}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        soundtrackVolume: Number(e.target.value),
+                      })
+                    }
+                  />
+                </label>
+              )}
               <label className="field">
                 <span>{t("player.textSize")}</span>
                 <select

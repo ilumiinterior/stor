@@ -142,14 +142,30 @@ for (const ios of [false, true])
         );
       await page.goto("/");
       await page
+        .getByRole("button", { name: "Nastavenia", exact: true })
+        .click();
+      const soundtrackVolume = page.getByRole("slider", {
+        name: /Hlasitosť soundtracku/,
+      });
+      await expect(soundtrackVolume).toHaveValue("1");
+      await soundtrackVolume.fill("0.5");
+      await page.getByRole("button", { name: "Zavrieť", exact: true }).click();
+      await page
         .getByRole("button", { name: "Začať odznova", exact: true })
         .click();
-      await expect.poll(async () => (await probe()).peak).toBeGreaterThan(0.06);
-      expect((await probe()).peak).toBeLessThan(0.1);
+      await expect.poll(async () => (await probe()).peak).toBeGreaterThan(0.03);
+      expect((await probe()).peak).toBeLessThan(0.05);
       expect((await probe()).loops).toBe(1);
       await page.getByRole("button", { name: /Ďalšia/ }).click();
       await page.waitForTimeout(400);
       expect((await probe()).loops).toBe(1);
-      expect((await probe()).peak).toBeGreaterThan(0.06);
+      expect((await probe()).peak).toBeGreaterThan(0.03);
+      await page.reload();
+      await page
+        .getByRole("button", { name: "Nastavenia", exact: true })
+        .click();
+      await expect(
+        page.getByRole("slider", { name: /Hlasitosť soundtracku/ }),
+      ).toHaveValue("0.5");
     });
   });
