@@ -118,6 +118,13 @@ export const storySchema = z.object({
       ending: z.boolean(),
       showTimer: z.boolean().optional(),
       timerOnly: z.boolean().optional(),
+      timerOverlay: z
+        .object({
+          enabled: z.boolean(),
+          startSeconds: z.number().finite().min(0).max(3600),
+          durationSeconds: z.number().finite().min(0.1).max(3600),
+        })
+        .optional(),
       textSequence: z
         .object({
           enabled: z.boolean(),

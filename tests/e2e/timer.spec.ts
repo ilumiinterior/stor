@@ -1,6 +1,129 @@
 import { test, expect } from "@playwright/test";
 import JSZip from "jszip";
+import { readFile } from "node:fs/promises";
 test.use({ serviceWorkers: "block" });
+test("timed centered timer appears over an image, pauses in menu and resets on reentry", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const base = {
+    position: { x: 0, y: 0 },
+    actions: [],
+    ending: false,
+    name: "Karta",
+    text: "Obrázok",
+  };
+  const overlay = { enabled: true, startSeconds: 1, durationSeconds: 2 };
+  const story = {
+    schemaVersion: 1,
+    id: "overlay",
+    title: "Timer",
+    contentLanguage: "sk",
+    updatedAt: 1,
+    startSceneId: "image",
+    variables: [],
+    timer: { enabled: true, durationSeconds: 600 },
+    scenes: [
+      {
+        ...base,
+        id: "image",
+        imageId: "image",
+        showTimer: false,
+        timerOverlay: overlay,
+        choices: [
+          { id: "next", text: "Ďalej", targetSceneId: "disabled", actions: [] },
+        ],
+      },
+      {
+        ...base,
+        id: "disabled",
+        showTimer: false,
+        timerOverlay: { ...overlay, enabled: false },
+        choices: [
+          { id: "back", text: "Znovu", targetSceneId: "image", actions: [] },
+        ],
+      },
+    ],
+  };
+  const zip = new JSZip();
+  zip.file(
+    "assets/images/image",
+    '<svg xmlns="http://www.w3.org/2000/svg" width="941" height="1672"><rect width="100%" height="100%" fill="#333"/></svg>',
+  );
+  zip.file(
+    "story.json",
+    JSON.stringify({
+      story,
+      assets: [
+        {
+          id: "image",
+          name: "image.svg",
+          kind: "image",
+          mime: "image/svg+xml",
+          path: "assets/images/image",
+        },
+      ],
+    }),
+  );
+  const body = await zip.generateAsync({ type: "nodebuffer" });
+  await page.route("**/game.story", (r) => r.fulfill({ status: 200, body }));
+  await page.clock.install();
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Začať odznova", exact: true })
+    .click();
+  await expect(page.getByRole("timer")).toHaveCount(0);
+  await page.clock.fastForward(1100);
+  await expect(page.getByRole("timer")).toHaveText("09:59");
+  const box = await page.locator(".player-countdown strong").boundingBox();
+  expect(Math.abs(box!.x + box!.width / 2 - 195)).toBeLessThan(2);
+  expect(Math.abs(box!.y + box!.height / 2 - 422)).toBeLessThan(2);
+  await expect(page.locator(".player-background")).toBeVisible();
+  await page.getByRole("button", { name: "Ponuka", exact: true }).click();
+  await page.clock.fastForward(5000);
+  await page.getByRole("button", { name: /Pokračovať/ }).click();
+  await expect(page.getByRole("timer")).toHaveText("09:59");
+  await page.clock.fastForward(2100);
+  await expect(page.getByRole("timer")).toHaveCount(0);
+  await page.getByRole("button", { name: /Ďalej/ }).click();
+  await page.clock.fastForward(1500);
+  await expect(page.getByRole("timer")).toHaveCount(0);
+  await page.getByRole("button", { name: /Znovu/ }).click();
+  await expect(page.getByRole("timer")).toHaveCount(0);
+  await page.clock.fastForward(1100);
+  await expect(page.getByRole("timer")).toBeVisible();
+});
+
+test("timer overlays a playing video for two seconds without interrupting it", async ({
+  page,
+}) => {
+  const zip = await JSZip.loadAsync(await readFile("public/game.story"));
+  const raw = JSON.parse(await zip.file("story.json")!.async("string"));
+  const scene = raw.story.scenes.find(
+    (s: { name: string }) => s.name === "Neber si to osobne",
+  );
+  expect(scene?.videoId).toBeTruthy();
+  raw.story.startSceneId = scene.id;
+  raw.story.timer = { enabled: true, durationSeconds: 600 };
+  scene.showTimer = false;
+  scene.timerOverlay = { enabled: true, startSeconds: 0, durationSeconds: 2 };
+  zip.file("story.json", JSON.stringify(raw));
+  const body = await zip.generateAsync({ type: "nodebuffer" });
+  await page.route("**/game.story", (r) => r.fulfill({ status: 200, body }));
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Začať odznova", exact: true })
+    .click();
+  await expect(page.locator(".player-countdown.is-centered")).toBeVisible();
+  const video = page.locator(".player-video");
+  await expect
+    .poll(() => video.evaluate((el) => (el as HTMLVideoElement).currentTime))
+    .toBeGreaterThan(2.2);
+  await expect(page.getByRole("timer")).toHaveCount(0);
+  expect(await video.evaluate((el) => (el as HTMLVideoElement).paused)).toBe(
+    false,
+  );
+});
 test("timer-only interlude shows only the global countdown and advances after its duration", async ({
   page,
 }) => {

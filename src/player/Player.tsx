@@ -139,6 +139,27 @@ export function Player({
             ? 1
             : 0
       : staticTextPart;
+  const overlay = scene?.timerOverlay;
+  const timedTimer = !timerOnly && !!overlay?.enabled;
+  const overlayPart = useTextPart(
+    textSceneKey,
+    timedTimer && !!story.timer?.enabled,
+    0,
+    menu || pageHidden,
+    overlay?.startSeconds ?? 0,
+    overlay?.durationSeconds ?? 2,
+  );
+  const overlayVideoSeconds =
+    videoProgress.assetId === `${textSceneKey}:${videoAsset?.id}`
+      ? videoProgress.seconds
+      : 0;
+  const overlayVisible =
+    videoAsset && !videoFailed
+      ? overlayVideoSeconds >= (overlay?.startSeconds ?? 0) &&
+        overlayVideoSeconds <
+          (overlay?.startSeconds ?? 0) + (overlay?.durationSeconds ?? 2)
+      : overlayPart === 1;
+  const centeredTimer = timerOnly || timedTimer;
   const hasGame = !!game;
   useEffect(() => {
     if (!story.timer?.enabled || !hasGame || menu || pageHidden) return;
@@ -513,13 +534,16 @@ export function Player({
         game &&
         !menu &&
         scene &&
-        (timerOnly || (scene.showTimer ?? !scene.ending)) && (
+        (timerOnly ||
+          (timedTimer
+            ? overlayVisible
+            : (scene.showTimer ?? !scene.ending))) && (
           <div
-            className={`player-countdown${timerOnly ? " is-centered" : ""}${remainingSeconds <= 60 ? " is-low" : ""}`}
+            className={`player-countdown${centeredTimer ? " is-centered" : ""}${remainingSeconds <= 60 ? " is-low" : ""}`}
             role="timer"
             aria-label={t("timer.remaining")}
           >
-            {!timerOnly && (
+            {!centeredTimer && (
               <span>
                 {remainingSeconds === 0
                   ? t("timer.expired")

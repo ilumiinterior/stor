@@ -24,6 +24,11 @@ export const sk = {
   timer: {
     onlyScene: "Iba odpočet – automatická scéna",
     cardDuration: "Trvanie karty s odpočtom (sekundy)",
+    overlay: "Časovaný timer v strede obrázka alebo videa",
+    overlayStart: "Zobraziť po (sekundy)",
+    overlayDuration: "Dĺžka zobrazenia timeru (sekundy)",
+    overlayHint:
+      "Nahradí malý timer časovaným odpočtom v strede. Video pokračuje. Pri videu sa čas zobrazenia riadi jeho prehrávaním; pri obrázku časom od vstupu do karty.",
     onlyHint:
       "Zobrazí iba veľký odpočet uprostred obrazovky. Nastavte trvanie karty a nasledujúcu scénu. Používa zostávajúci čas hry, nezačína nový odpočet.",
     needsEnabled:

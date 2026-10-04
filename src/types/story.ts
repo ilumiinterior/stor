@@ -42,6 +42,11 @@ export interface Scene {
   ending: boolean;
   showTimer?: boolean;
   timerOnly?: boolean;
+  timerOverlay?: {
+    enabled: boolean;
+    startSeconds: number;
+    durationSeconds: number;
+  };
   textSequence?: {
     enabled: boolean;
     secondText: string;
