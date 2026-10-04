@@ -41,6 +41,7 @@ export interface Scene {
   actions: VariableAction[];
   ending: boolean;
   showTimer?: boolean;
+  timerOnly?: boolean;
 }
 export interface StoryContent {
   title: string;

@@ -75,9 +75,12 @@ export function Player({
   const queue = useRef(Promise.resolve(true));
   const locked = useRef(false);
   const scene = story.scenes.find((s) => s.id === game?.currentSceneId);
-  const image = useAssetUrl(assets.find((a) => a.id === scene?.imageId));
+  const timerOnly = !!scene?.timerOnly;
+  const image = useAssetUrl(
+    assets.find((a) => !timerOnly && a.id === scene?.imageId),
+  );
   const videoAsset = assets.find(
-    (a) => a.id === scene?.videoId && a.kind === "video",
+    (a) => !timerOnly && a.id === scene?.videoId && a.kind === "video",
   );
   const [videoReady, setVideoReady] = useState(false);
   const [choicesHighlighted, setChoicesHighlighted] = useState(false);
@@ -214,7 +217,7 @@ export function Player({
       /* Settings are optional; story persistence is handled separately. */
     }
     sound.setVolume(settings.volume);
-    if (!settings.sound || menu || pageHidden) {
+    if (!settings.sound || menu || pageHidden || timerOnly) {
       sound.stop();
       return;
     }
@@ -236,7 +239,7 @@ export function Player({
     return () => {
       current = false;
     };
-  }, [scene, settings, assets, menu, pageHidden]);
+  }, [scene, settings, assets, menu, pageHidden, timerOnly]);
   useEffect(() => () => sound.stop(), []);
   useEffect(() => {
     if (!scene) return;
@@ -319,7 +322,7 @@ export function Player({
     },
     [story, save],
   );
-  const automatic = !!scene?.autoAdvance && !scene.ending;
+  const automatic = (!!scene?.autoAdvance || timerOnly) && !scene?.ending;
   const automaticValid =
     automatic &&
     story.scenes.some(
@@ -411,17 +414,18 @@ export function Player({
       )}
       data-font={font}
     >
-      {backgrounds.map((url, i) => (
-        <div
-          key={url}
-          aria-hidden="true"
-          className={`player-background ${i === backgrounds.length - 1 ? "incoming" : ""}`}
-          style={{
-            backgroundImage: `url("${url}")`,
-            visibility: videoReady ? "hidden" : undefined,
-          }}
-        />
-      ))}
+      {!timerOnly &&
+        backgrounds.map((url, i) => (
+          <div
+            key={url}
+            aria-hidden="true"
+            className={`player-background ${i === backgrounds.length - 1 ? "incoming" : ""}`}
+            style={{
+              backgroundImage: `url("${url}")`,
+              visibility: videoReady ? "hidden" : undefined,
+            }}
+          />
+        ))}
       {videoAsset && (
         <VideoBackground
           key={`${scene?.id}:${videoAsset.id}`}
@@ -443,17 +447,19 @@ export function Player({
         game &&
         !menu &&
         scene &&
-        (scene.showTimer ?? !scene.ending) && (
+        (timerOnly || (scene.showTimer ?? !scene.ending)) && (
           <div
-            className={`player-countdown${remainingSeconds <= 60 ? " is-low" : ""}`}
+            className={`player-countdown${timerOnly ? " is-centered" : ""}${remainingSeconds <= 60 ? " is-low" : ""}`}
             role="timer"
             aria-label={t("timer.remaining")}
           >
-            <span>
-              {remainingSeconds === 0
-                ? t("timer.expired")
-                : t("timer.remaining")}
-            </span>
+            {!timerOnly && (
+              <span>
+                {remainingSeconds === 0
+                  ? t("timer.expired")
+                  : t("timer.remaining")}
+              </span>
+            )}
             <strong>{timerDisplay}</strong>
           </div>
         )}
@@ -642,6 +648,19 @@ export function Player({
             </div>
           )}
         </div>
+      ) : scene && timerOnly ? (
+        <>
+          {!story.timer?.enabled && (
+            <p className="player-loading" role="alert">
+              {t("timer.needsEnabled")}
+            </p>
+          )}
+          {!automaticValid && (
+            <p className="player-loading" role="alert">
+              {t("debug.automaticTarget")}
+            </p>
+          )}
+        </>
       ) : scene ? (
         <article
           className="scene-content"

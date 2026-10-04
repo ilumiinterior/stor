@@ -114,6 +114,7 @@ export const storySchema = z.object({
       ambientId: z.string().optional(),
       ending: z.boolean(),
       showTimer: z.boolean().optional(),
+      timerOnly: z.boolean().optional(),
       actions: z.array(action),
       choices: z.array(
         z.object({

@@ -35,6 +35,8 @@ export function validate(story: Story, assets: Asset[]): Warning[] {
   for (const variable of story.variables)
     checkId(variable.id, story.startSceneId);
   for (const s of story.scenes) {
+    if (s.timerOnly && !story.timer?.enabled)
+      warnings.push({ sceneId: s.id, key: "timer.needsEnabled" });
     checkId(s.id, s.id);
     if (!reachable.has(s.id))
       warnings.push({

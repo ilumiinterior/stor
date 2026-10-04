@@ -1,5 +1,11 @@
 export const sk = {
   timer: {
+    onlyScene: "Iba odpočet – automatická scéna",
+    cardDuration: "Trvanie karty s odpočtom (sekundy)",
+    onlyHint:
+      "Zobrazí iba veľký odpočet uprostred obrazovky. Nastavte trvanie karty a nasledujúcu scénu. Používa zostávajúci čas hry, nezačína nový odpočet.",
+    needsEnabled:
+      "Pre scénu s odpočtom zapnite odpočet v nastaveniach príbehu.",
     title: "Odpočet hry",
     enabled: "Zapnúť odpočet",
     minutes: "Dĺžka odpočtu (minúty)",
