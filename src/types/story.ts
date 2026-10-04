@@ -42,6 +42,11 @@ export interface Scene {
   ending: boolean;
   showTimer?: boolean;
   timerOnly?: boolean;
+  textSequence?: {
+    enabled: boolean;
+    secondText: string;
+    durationSeconds: number;
+  };
 }
 export interface StoryContent {
   title: string;

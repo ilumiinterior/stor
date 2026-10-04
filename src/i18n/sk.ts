@@ -1,4 +1,11 @@
 export const sk = {
+  textSequence: {
+    enabled: "Rozdeliť text na dve časti",
+    first: "Prvá časť textu",
+    second: "Druhá časť textu",
+    duration: "Celkové trvanie textu (sekundy)",
+    hint: "Každá časť dostane polovicu času. Pri automatickej karte sa použije jej trvanie, pri videu dĺžka videa. Druhá časť nahradí prvú; texty sa nezobrazujú naraz.",
+  },
   timer: {
     onlyScene: "Iba odpočet – automatická scéna",
     cardDuration: "Trvanie karty s odpočtom (sekundy)",

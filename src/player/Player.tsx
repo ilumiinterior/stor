@@ -19,6 +19,7 @@ import { AppearanceFields } from "../components/AppearanceFields";
 import { VideoBackground } from "./VideoBackground";
 import { colorStyle } from "../utils/colors";
 import { version } from "../../package.json";
+import { useTextPart } from "./useTextPart";
 function readSettings() {
   try {
     const raw = JSON.parse(localStorage.getItem("vetvy.settings") ?? "{}");
@@ -86,6 +87,31 @@ export function Player({
   const [choicesHighlighted, setChoicesHighlighted] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
   const [pageHidden, setPageHidden] = useState(document.hidden);
+  const [videoProgress, setVideoProgress] = useState({
+    assetId: "",
+    fraction: 0,
+  });
+  const textSceneKey = `${scene?.id}:${game?.history.length}`;
+  const reportVideoProgress = useCallback(
+    (assetId: string, fraction: number) =>
+      setVideoProgress({ assetId: `${textSceneKey}:${assetId}`, fraction }),
+    [textSceneKey],
+  );
+  const staticTextPart = useTextPart(
+    textSceneKey,
+    !!scene?.textSequence?.enabled,
+    scene?.autoAdvance?.delaySeconds ??
+      scene?.textSequence?.durationSeconds ??
+      6,
+    menu || pageHidden,
+  );
+  const textPart =
+    videoAsset && !videoFailed
+      ? videoProgress.assetId === `${textSceneKey}:${videoAsset.id}` &&
+        videoProgress.fraction >= 0.5
+        ? 1
+        : 0
+      : staticTextPart;
   const hasGame = !!game;
   useEffect(() => {
     if (!story.timer?.enabled || !hasGame || menu || pageHidden) return;
@@ -440,6 +466,7 @@ export function Player({
           onComplete={automaticValid ? completeVideo : undefined}
           onFailure={failVideo}
           controls={!automatic}
+          onProgress={reportVideoProgress}
         />
       )}
       <div className="player-shade" />
@@ -669,7 +696,11 @@ export function Player({
           {presentation.showSceneNames && (
             <span className="eyebrow">{scene.name}</span>
           )}
-          <p className="story-prose">{scene.text}</p>
+          <p className="story-prose">
+            {scene.textSequence?.enabled && textPart === 1
+              ? scene.textSequence.secondText
+              : scene.text}
+          </p>
           <div
             className={`player-choices${choicesHighlighted ? " is-highlighted" : ""}`}
           >
