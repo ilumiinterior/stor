@@ -1036,6 +1036,45 @@ audio {
   top: 100%;
   width: 100%;
 }
+.main-menu-top {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 3;
+}
+.player-menu.main-menu-screen {
+  width: 100%;
+  min-height: max(100dvh, 580px);
+  margin: 0;
+  padding: calc(20dvh + 120px) 24px calc(36px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.player-menu.main-menu-screen h1 {
+  position: absolute;
+  top: 20dvh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 48px);
+  margin: 0;
+  font-size: clamp(4rem, 10vw, 7rem);
+  overflow-wrap: anywhere;
+}
+.main-menu-screen .menu-buttons {
+  width: min(100%, 520px);
+  margin-top: auto;
+}
+.main-menu-screen .menu-buttons > button {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+.main-menu-screen .menu-buttons.menu-grid {
+  width: 100%;
+  height: clamp(300px, 42dvh, 420px);
+  flex-shrink: 0;
+}
 .main-menu-position-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

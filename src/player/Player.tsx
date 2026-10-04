@@ -561,7 +561,9 @@ export function Player({
           </div>
         )}
       {(!automatic || menu) && (
-        <header className="player-top">
+        <header
+          className={`player-top${menu && page === "main" ? " main-menu-top" : ""}`}
+        >
           {(!standalone || !menu) && (
             <button
               className={!menu ? "player-menu-symbol" : undefined}
@@ -582,7 +584,9 @@ export function Player({
                 : t("player.menuSymbol")}
             </button>
           )}
-          <span>{preview ? t("player.preview") : story.title}</span>
+          {!(menu && page === "main") && (
+            <span>{preview ? t("player.preview") : story.title}</span>
+          )}
         </header>
       )}
       {error && (
@@ -597,11 +601,13 @@ export function Player({
         <p className="player-loading">{t("app.loading")}</p>
       ) : menu ? (
         <div
-          className={`player-menu${page === "main" && story.mainMenu?.customLayout ? " custom-main-menu" : ""}`}
+          className={`player-menu${page === "main" ? " main-menu-screen" : ""}${page === "main" && story.mainMenu?.customLayout ? " custom-main-menu" : ""}`}
         >
-          <span className="eyebrow">
-            {preview ? t("player.preview") : t("app.name")}
-          </span>
+          {page !== "main" && (
+            <span className="eyebrow">
+              {preview ? t("player.preview") : t("app.name")}
+            </span>
+          )}
           <h1>{story.title}</h1>
           {page === "main" && (
             <div
@@ -617,7 +623,7 @@ export function Player({
                     : auto && restore(auto)
                 }
               >
-                {t("player.continue")} <span>→</span>
+                {t("player.continue")}
               </button>
               <button
                 style={buttonStyle("newStory")}

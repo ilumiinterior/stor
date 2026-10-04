@@ -26,12 +26,23 @@ for (const mobile of [false, true])
     await page.route("**/game.story", (r) => r.fulfill({ status: 200, body }));
     await page.goto("/");
     await expect(page.locator(".menu-background")).toBeVisible();
+    await expect(page.locator(".main-menu-screen .eyebrow")).toHaveCount(0);
+    const title = await page.locator(".main-menu-screen h1").boundingBox();
+    const viewport = page.viewportSize()!;
+    expect(Math.abs(title!.y - viewport.height * 0.2)).toBeLessThan(2);
+    expect(
+      Math.abs(title!.x + title!.width / 2 - viewport.width / 2),
+    ).toBeLessThan(2);
+    const grid = await page.locator(".menu-grid").boundingBox();
+    expect(grid!.y + grid!.height).toBeGreaterThan(viewport.height * 0.85);
     const start = page.getByRole("button", {
       name: "Začať odznova",
       exact: true,
     });
     await expect(start).toHaveCSS("grid-column-start", "1");
     await expect(start).toHaveCSS("grid-row-start", "4");
+    await expect(start).toHaveCSS("justify-content", "center");
+    await expect(start).toHaveCSS("text-align", "center");
     const settings = page.getByRole("button", {
       name: "Nastavenia",
       exact: true,
