@@ -24,6 +24,11 @@ export interface Choice {
   actions: VariableAction[];
 }
 export interface Scene {
+  editor?: {
+    color?: string;
+    group?: string;
+    importance?: "minor" | "normal" | "major";
+  };
   id: string;
   name: string;
   text: string;

@@ -1,4 +1,29 @@
 export const sk = {
+  organization: {
+    title: "Organizácia kariet",
+    selected: "Vybrané karty: {count}",
+    color: "Farba kariet v mape",
+    resetColor: "Odstrániť farebné označenie",
+    group: "Skupina kariet",
+    applyGroup: "Priradiť skupinu",
+    removeGroup: "Odobrať zo skupiny",
+    importance: "Dôležitosť v deji",
+    minor: "Vedľajšia — malá karta",
+    normal: "Bežná — stredná karta",
+    major: "Kľúčová — veľká karta",
+    mixed: "Rôzne hodnoty",
+    selectAll: "Vybrať všetky karty",
+    clear: "Zrušiť výber",
+    selectGroup: "Vybrať skupinu",
+    alignLeft: "Zarovnať vľavo",
+    alignTop: "Zarovnať hore",
+    arrange: "Usporiadať do mriežky",
+    hint: "Ťahaním cez voľnú plochu vyberiete viac kariet. Ctrl/⌘ + klik pridáva alebo odoberá karty. Vybrané karty môžete presúvať spolu. Medzerník + ťahanie posúva mapu.",
+    groupHint:
+      "Skupiny pomáhajú rozdeliť dej na kapitoly alebo vetvy. Označenie sa zobrazuje iba v editore.",
+    sizesHint:
+      "Dôležitosť mení veľkosť karty v mape. Neovplyvňuje dĺžku ani obsah scény v hre.",
+  },
   mainMenu: {
     title: "Hlavné menu",
     background: "Pozadie hlavného menu",

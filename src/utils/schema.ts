@@ -117,6 +117,16 @@ export const storySchema = z.object({
       id: z.string().min(1),
       name: z.string(),
       text: z.string(),
+      editor: z
+        .object({
+          color: z
+            .string()
+            .regex(/^#[\da-f]{6}$/i)
+            .optional(),
+          group: z.string().max(100).optional(),
+          importance: z.enum(["minor", "normal", "major"]).optional(),
+        })
+        .optional(),
       position: z.object({ x: z.number().finite(), y: z.number().finite() }),
       imageId: z.string().optional(),
       videoId: z.string().optional(),

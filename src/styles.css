@@ -574,9 +574,77 @@ small,
 .scene-node {
   width: 220px;
   padding: 16px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--node-color, var(--line));
+  border-left: 5px solid var(--node-color, var(--line));
   border-radius: 8px;
   background: var(--button-bg);
+}
+.scene-node.importance-minor {
+  width: 180px;
+  padding: 12px;
+}
+.scene-node.importance-minor p {
+  display: none;
+}
+.scene-node.importance-major {
+  width: 300px;
+  padding: 22px;
+}
+.scene-node.importance-major strong {
+  font-size: 1.2rem;
+}
+.node-group {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.65rem;
+  color: var(--text);
+  border-bottom: 1px solid var(--node-color, var(--line));
+  overflow-wrap: anywhere;
+}
+.graph-selection-tools {
+  position: absolute;
+  z-index: 5;
+  top: 80px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+.graph-selection-tools button,
+.graph-selection-tools select {
+  pointer-events: auto;
+  width: auto;
+  max-width: 180px;
+  min-height: 34px;
+  padding: 6px 9px;
+  font-size: 0.7rem;
+  background: var(--surface);
+}
+.graph-selection-tools > span {
+  background: var(--surface);
+  font-size: 0.7rem;
+  padding: 6px;
+}
+.organization-help {
+  padding: 12px 16px 0;
+  font-size: 0.75rem;
+}
+.scene-organization {
+  border-bottom: 1px solid var(--line);
+}
+.organization-align {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+}
+.scene-list small {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--muted);
 }
 .scene-node.selected {
   border-color: var(--accent-text);
