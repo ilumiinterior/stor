@@ -101,6 +101,16 @@ export const storySchema = z.object({
             .string()
             .regex(/^#[\da-f]{6}$/i)
             .optional(),
+          menuBackground: visualColor.optional(),
+          text: visualColor.optional(),
+          title: visualColor.optional(),
+          buttonBackground: visualColor.optional(),
+          buttonText: visualColor.optional(),
+          buttonBorder: visualColor.optional(),
+          buttonHover: visualColor.optional(),
+          timer: visualColor.optional(),
+          controls: visualColor.optional(),
+          buttonOpacity: z.number().finite().min(0).max(1).optional(),
         })
         .optional(),
     })

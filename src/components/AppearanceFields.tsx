@@ -1,6 +1,7 @@
 import { t } from "../i18n";
 import { Field } from "./Fields";
 import { ColorFields } from "./ColorFields";
+import { GameColorFields } from "./GameColorFields";
 import type { CustomColors } from "../utils/colors";
 import {
   fontIds,
@@ -14,12 +15,14 @@ export function AppearanceFields({
   onChange,
   colors,
   onColorsChange,
+  gameColors = false,
 }: {
   font: FontId;
   theme: ThemeId;
   onChange: (font: FontId, theme: ThemeId) => void;
   colors?: CustomColors;
   onColorsChange: (colors: CustomColors) => void;
+  gameColors?: boolean;
 }) {
   return (
     <>
@@ -53,6 +56,13 @@ export function AppearanceFields({
         </select>
       </Field>
       <ColorFields theme={theme} colors={colors} onChange={onColorsChange} />
+      {gameColors && (
+        <GameColorFields
+          theme={theme}
+          colors={colors}
+          onChange={onColorsChange}
+        />
+      )}
       <p className="font-sample" data-font={font}>
         {t("appearance.sample")}
       </p>

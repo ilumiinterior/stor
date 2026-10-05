@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import type { CustomColors } from "./colors";
 import type {
   Scene,
   SceneLayout,
@@ -9,6 +10,7 @@ export function defaultChoice(
   index: number,
   count: number,
   desktop = false,
+  colors?: CustomColors,
 ): VisualChoice {
   return {
     x: desktop ? 25 : 5,
@@ -16,29 +18,33 @@ export function defaultChoice(
     width: desktop ? 50 : 90,
     height: 7,
     fontSize: 18,
-    color: "#ffffff",
+    color: colors?.buttonText ?? "#ffffff",
     align: "center",
-    background: "#252b27",
-    opacity: 0.8,
+    background: colors?.buttonBackground ?? "#252b27",
+    opacity: colors?.buttonOpacity ?? 0.8,
     radius: 10,
-    borderColor: "#889477",
+    borderColor: colors?.buttonBorder ?? "#889477",
     borderWidth: 1,
   };
 }
-export function defaultSceneLayout(scene: Scene, desktop = false): SceneLayout {
+export function defaultSceneLayout(
+  scene: Scene,
+  desktop = false,
+  colors?: CustomColors,
+): SceneLayout {
   return {
     text: {
       x: desktop ? 25 : 5,
       y: Math.max(12, 65 - scene.choices.length * 9),
       width: desktop ? 50 : 90,
       fontSize: desktop ? 28 : 24,
-      color: "#ffffff",
+      color: colors?.text ?? "#ffffff",
       align: "left",
     },
     choices: Object.fromEntries(
       scene.choices.map((c, i) => [
         c.id,
-        defaultChoice(i, scene.choices.length, desktop),
+        defaultChoice(i, scene.choices.length, desktop, colors),
       ]),
     ),
   };

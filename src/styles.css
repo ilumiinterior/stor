@@ -1142,7 +1142,7 @@ audio {
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: #fff;
+  color: var(--timer-color, #fff);
   pointer-events: none;
 }
 .player-countdown span {
@@ -1183,7 +1183,7 @@ audio {
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: #fff;
+  color: var(--controls-color, #fff);
   font:
     300 1.5rem "Manrope",
     sans-serif;
@@ -1191,7 +1191,7 @@ audio {
 }
 .player-top .player-menu-symbol:hover {
   background: transparent;
-  color: #fff;
+  color: var(--controls-color, #fff);
 }
 .player-top > span {
   font-size: 0.7rem;
@@ -1205,6 +1205,7 @@ audio {
   padding: 48px 24px calc(40px + env(safe-area-inset-bottom));
 }
 .player-menu h1 {
+  color: var(--game-title, var(--text));
   font-family: var(--display-font, "Bodoni Moda"), serif;
   font-size: 3.2rem;
   font-weight: 500;
@@ -1217,8 +1218,40 @@ audio {
   gap: 12px;
 }
 .menu-buttons > button {
+  background: color-mix(
+    in srgb,
+    var(--choice-bg, var(--button-bg)) var(--choice-opacity, 100%),
+    transparent
+  );
+  color: var(--choice-text, var(--text));
+  border-color: var(--choice-border, var(--line));
   justify-content: space-between;
   min-height: 52px;
+}
+.menu-buttons > button.primary {
+  background: color-mix(
+    in srgb,
+    var(--choice-bg, var(--accent)) var(--choice-opacity, 100%),
+    transparent
+  );
+  color: var(--choice-text, var(--button-text));
+}
+.menu-buttons > button:hover {
+  background: var(--choice-hover, var(--hover));
+}
+.menu-buttons > button.primary:hover {
+  background: var(--choice-hover, var(--accent-hover));
+}
+.player-shell.menu-active {
+  background-color: var(--menu-bg, var(--player-bg));
+}
+.scene-content > .eyebrow {
+  color: var(--game-title, var(--text));
+}
+.game-color-fields > summary {
+  cursor: pointer;
+  padding: 12px 0;
+  font-weight: 600;
 }
 .menu-buttons small {
   display: block;
@@ -1367,8 +1400,13 @@ audio {
   gap: 12px;
 }
 .player-choices button {
-  background: color-mix(in srgb, var(--button-bg) 90%, transparent);
-  border: 1px solid var(--line);
+  background: color-mix(
+    in srgb,
+    var(--choice-bg, var(--button-bg)) var(--choice-opacity, 90%),
+    transparent
+  );
+  color: var(--choice-text, var(--text));
+  border: 1px solid var(--choice-border, var(--line));
   justify-content: flex-start;
   min-height: 56px;
   text-align: left;
@@ -1376,11 +1414,14 @@ audio {
   line-height: 1.6;
 }
 .player-choices button:hover {
-  background: var(--hover);
+  background: var(--choice-hover, var(--hover));
 }
 .player-choices.is-highlighted button {
   border-color: var(--accent-text);
-  background: color-mix(in srgb, var(--accent) 22%, var(--button-bg));
+  background: var(
+    --choice-hover,
+    color-mix(in srgb, var(--accent) 22%, var(--button-bg))
+  );
   animation: choice-attention 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes choice-attention {

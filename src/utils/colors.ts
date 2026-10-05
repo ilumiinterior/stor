@@ -3,7 +3,28 @@ import type { ThemeId } from "./appearance";
 export interface CustomColors {
   background?: string;
   accent?: string;
+  menuBackground?: string;
+  text?: string;
+  title?: string;
+  buttonBackground?: string;
+  buttonText?: string;
+  buttonBorder?: string;
+  buttonHover?: string;
+  timer?: string;
+  controls?: string;
+  buttonOpacity?: number;
 }
+export const gameColorKeys = [
+  "menuBackground",
+  "text",
+  "title",
+  "buttonBackground",
+  "buttonText",
+  "buttonBorder",
+  "buttonHover",
+  "timer",
+  "controls",
+] as const;
 export const isHex = (value: unknown): value is string =>
   typeof value === "string" && /^#[\da-f]{6}$/i.test(value);
 export function cleanColors(value: unknown): CustomColors {
@@ -11,6 +32,15 @@ export function cleanColors(value: unknown): CustomColors {
   return {
     ...(isHex(raw.background) ? { background: raw.background } : {}),
     ...(isHex(raw.accent) ? { accent: raw.accent } : {}),
+    ...Object.fromEntries(
+      gameColorKeys
+        .filter((key) => isHex(raw[key]))
+        .map((key) => [key, raw[key]]),
+    ),
+    ...(typeof raw.buttonOpacity === "number" &&
+    Number.isFinite(raw.buttonOpacity)
+      ? { buttonOpacity: Math.max(0, Math.min(1, raw.buttonOpacity)) }
+      : {}),
   };
 }
 export const themeColors: Record<
@@ -73,7 +103,7 @@ export function colorStyle(
   theme: ThemeId,
 ): CSSProperties | undefined {
   const custom = cleanColors(colors);
-  if (!custom.background && !custom.accent) return;
+  if (!Object.keys(custom).length) return;
   const bg = custom.background ?? themeColors[theme].background;
   const accent = custom.accent ?? themeColors[theme].accent;
   const vars: Record<string, string> = {};
@@ -105,5 +135,20 @@ export function colorStyle(
     "--button-text": readable(accent),
     "--accent-text": foreground(accent, [bg, surface]),
   });
+  const mapping = {
+    menuBackground: "--menu-bg",
+    text: "--text",
+    title: "--game-title",
+    buttonBackground: "--choice-bg",
+    buttonText: "--choice-text",
+    buttonBorder: "--choice-border",
+    buttonHover: "--choice-hover",
+    timer: "--timer-color",
+    controls: "--controls-color",
+  };
+  for (const key of gameColorKeys)
+    if (custom[key]) vars[mapping[key]] = custom[key]!;
+  if (custom.buttonOpacity !== undefined)
+    vars["--choice-opacity"] = `${custom.buttonOpacity * 100}%`;
   return vars as CSSProperties;
 }

@@ -35,6 +35,22 @@ for (const desktop of [false, true])
       updatedAt: 1,
       startSceneId: "a",
       variables: [],
+      presentation: {
+        font: "manrope",
+        theme: "forest",
+        showSceneNames: false,
+        colors: {
+          menuBackground: "#123456",
+          text: "#ffcc00",
+          title: "#abcdef",
+          buttonBackground: "#112233",
+          buttonText: "#aabbcc",
+          buttonBorder: "#abcdef",
+          timer: "#ffee00",
+          controls: "#00ffaa",
+          buttonOpacity: 0.6,
+        },
+      },
       scenes: [
         {
           id: "a",
@@ -71,6 +87,18 @@ for (const desktop of [false, true])
     const body = await zip.generateAsync({ type: "nodebuffer" });
     await page.route("**/game.story", (r) => r.fulfill({ status: 200, body }));
     await page.goto("/");
+    await expect(page.locator(".player-shell")).toHaveCSS(
+      "background-color",
+      "rgb(18, 52, 86)",
+    );
+    await expect(page.locator(".player-menu h1")).toHaveCSS(
+      "color",
+      "rgb(171, 205, 239)",
+    );
+    await expect(page.locator(".menu-buttons button").first()).toHaveCSS(
+      "color",
+      "rgb(170, 187, 204)",
+    );
     await page
       .getByRole("button", { name: "Začať odznova", exact: true })
       .click();
@@ -95,4 +123,8 @@ for (const desktop of [false, true])
     await button.click();
     await expect(page.locator(".story-prose")).toHaveText("Ďalšia karta");
     await expect(page.locator(".player-shade")).toHaveCount(1);
+    await expect(page.locator(".story-prose")).toHaveCSS(
+      "color",
+      "rgb(255, 204, 0)",
+    );
   });

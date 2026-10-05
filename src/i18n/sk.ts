@@ -1,4 +1,19 @@
 export const sk = {
+  gameColors: {
+    title: "Predvolené farby hry",
+    menuBackground: "Pozadie hlavného menu",
+    text: "Text scény",
+    titleColor: "Názvy a titulok príbehu",
+    buttonBackground: "Pozadie tlačidiel",
+    buttonText: "Text tlačidiel",
+    buttonBorder: "Rámček tlačidiel",
+    buttonHover: "Zvýraznenie tlačidiel",
+    timer: "Farba timeru",
+    controls: "Farba ovládacích prvkov",
+    opacity: "Priehľadnosť tlačidiel",
+    reset: "Obnoviť predvolené farby častí hry",
+    hint: "Platí pre celý príbeh a uloží sa do exportu. Vlastný vzhľad karty má prednosť. Hráč si môže farby upraviť v nastaveniach.",
+  },
   visual: {
     shade: "Stmavenie pozadia pod textom",
     open: "Upraviť vzhľad karty",
@@ -220,6 +235,7 @@ export const sk = {
     assets: "Médiá",
     variables: "Premenné",
     debug: "Kontrola príbehu",
+    design: "Dizajn",
     newScene: "Nová scéna",
     sceneName: "Názov scény",
     text: "Text príbehu",

@@ -502,10 +502,10 @@ export function Player({
       : undefined;
   return (
     <main
-      className={`player-shell ${settings.large ? "large-text" : ""}`}
+      className={`player-shell ${settings.large ? "large-text" : ""}${menu ? " menu-active" : ""}`}
       data-theme={theme}
       style={colorStyle(
-        scene?.backgroundColor
+        !menu && scene?.backgroundColor
           ? { ...colors, background: scene.backgroundColor }
           : colors,
         theme,
@@ -705,6 +705,7 @@ export function Player({
               {!preview && (
                 <>
                   <AppearanceFields
+                    gameColors
                     colors={colors}
                     onColorsChange={preferences.setPlayerColors}
                     font={font}
