@@ -24,6 +24,7 @@ export interface Choice {
   actions: VariableAction[];
 }
 export interface Scene {
+  shade?: boolean;
   visual?: { mobile: SceneLayout; desktop?: SceneLayout };
   editor?: {
     color?: string;

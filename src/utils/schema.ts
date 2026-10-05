@@ -166,6 +166,7 @@ export const storySchema = z.object({
         .string()
         .regex(/^#[\da-f]{6}$/i)
         .optional(),
+      shade: z.boolean().optional(),
       voiceId: z.string().optional(),
       musicId: z.string().optional(),
       ambientId: z.string().optional(),

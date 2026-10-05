@@ -1,5 +1,6 @@
 export const sk = {
   visual: {
+    shade: "Stmavenie pozadia pod textom",
     open: "Upraviť vzhľad karty",
     title: "Vizuálny editor karty",
     mobile: "Mobil",

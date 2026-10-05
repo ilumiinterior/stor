@@ -38,6 +38,7 @@ for (const desktop of [false, true])
       scenes: [
         {
           id: "a",
+          shade: false,
           name: "a",
           text: "Text v upravenej karte",
           position: { x: 0, y: 0 },
@@ -74,6 +75,7 @@ for (const desktop of [false, true])
       .getByRole("button", { name: "Začať odznova", exact: true })
       .click();
     const button = page.getByRole("button", { name: "Odpoveď", exact: true });
+    await expect(page.locator(".player-shade")).toHaveCount(0);
     await expect(button).toHaveCSS("border-radius", desktop ? "5px" : "30px");
     await expect(button).toHaveCSS("background-color", "rgba(255, 0, 0, 0.5)");
     await expect(button).toHaveCSS("font-size", "24px");
@@ -92,4 +94,5 @@ for (const desktop of [false, true])
     });
     await button.click();
     await expect(page.locator(".story-prose")).toHaveText("Ďalšia karta");
+    await expect(page.locator(".player-shade")).toHaveCount(1);
   });

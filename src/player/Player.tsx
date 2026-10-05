@@ -544,7 +544,7 @@ export function Player({
         />
       )}
       {menu && menuAsset && <MenuBackground asset={menuAsset} />}
-      <div className="player-shade" />
+      {(menu || scene?.shade !== false) && <div className="player-shade" />}
       {story.timer?.enabled &&
         game &&
         !menu &&
