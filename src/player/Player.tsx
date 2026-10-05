@@ -23,6 +23,7 @@ import { useTextPart } from "./useTextPart";
 import { MenuBackground } from "./MenuBackground";
 import { menuGridStyle, menuPosition } from "../utils/mainMenu";
 import type { MenuButtonId } from "../types/story";
+import { defaultChoice, visualStyle } from "../utils/sceneVisual";
 function readSettings() {
   try {
     const raw = JSON.parse(localStorage.getItem("vetvy.settings") ?? "{}");
@@ -801,14 +802,24 @@ export function Player({
         </>
       ) : scene ? (
         <article
-          className="scene-content"
+          className={`scene-content${scene.visual ? " visual-scene" : ""}`}
           key={`${scene.id}-${game?.history.length}`}
         >
           {presentation.showSceneNames && (
             <span className="eyebrow">{scene.name}</span>
           )}
           {!(scene.textSequence?.enabled && textPart === 2) && (
-            <p className="story-prose">
+            <p
+              className="story-prose"
+              style={
+                scene.visual
+                  ? visualStyle(
+                      scene.visual.mobile.text,
+                      scene.visual.desktop?.text,
+                    )
+                  : undefined
+              }
+            >
               {scene.textSequence?.enabled && textPart === 1
                 ? scene.textSequence.secondText
                 : scene.text}
@@ -822,6 +833,18 @@ export function Player({
               .map((c, i) => (
                 <button
                   key={c.id}
+                  style={
+                    scene.visual
+                      ? visualStyle(
+                          scene.visual.mobile.choices[c.id] ??
+                            defaultChoice(i, scene.choices.length),
+                          scene.visual.desktop
+                            ? (scene.visual.desktop.choices[c.id] ??
+                                defaultChoice(i, scene.choices.length, true))
+                            : undefined,
+                        )
+                      : undefined
+                  }
                   disabled={!story.scenes.some((s) => s.id === c.targetSceneId)}
                   onClick={() => void decision(c)}
                 >

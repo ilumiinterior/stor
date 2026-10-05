@@ -38,6 +38,27 @@ const menuPosition = z
     height: z.number().int().min(1).max(12),
   })
   .refine((p) => p.column + p.width <= 13 && p.row + p.height <= 13);
+const visualColor = z.string().regex(/^#[\da-f]{6}$/i);
+const visualBox = z.object({
+  x: z.number().finite().min(0).max(100),
+  y: z.number().finite().min(0).max(100),
+  width: z.number().finite().min(1).max(100),
+  fontSize: z.number().finite().min(10).max(96),
+  color: visualColor,
+  align: z.enum(["left", "center", "right"]),
+});
+const visualChoice = visualBox.extend({
+  height: z.number().finite().min(1).max(100),
+  background: visualColor,
+  opacity: z.number().finite().min(0).max(1),
+  radius: z.number().finite().min(0).max(100),
+  borderColor: visualColor,
+  borderWidth: z.number().finite().min(0).max(10),
+});
+const sceneLayout = z.object({
+  text: visualBox,
+  choices: z.record(z.string(), visualChoice),
+});
 export const storySchema = z.object({
   mainMenu: z
     .object({
@@ -117,6 +138,9 @@ export const storySchema = z.object({
       id: z.string().min(1),
       name: z.string(),
       text: z.string(),
+      visual: z
+        .object({ mobile: sceneLayout, desktop: sceneLayout.optional() })
+        .optional(),
       editor: z
         .object({
           color: z

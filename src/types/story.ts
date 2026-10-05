@@ -24,6 +24,7 @@ export interface Choice {
   actions: VariableAction[];
 }
 export interface Scene {
+  visual?: { mobile: SceneLayout; desktop?: SceneLayout };
   editor?: {
     color?: string;
     group?: string;
@@ -59,6 +60,26 @@ export interface Scene {
     firstDurationSeconds?: number;
     secondDurationSeconds?: number;
   };
+}
+export interface VisualBox {
+  x: number;
+  y: number;
+  width: number;
+  fontSize: number;
+  color: string;
+  align: "left" | "center" | "right";
+}
+export interface VisualChoice extends VisualBox {
+  height: number;
+  background: string;
+  opacity: number;
+  radius: number;
+  borderColor: string;
+  borderWidth: number;
+}
+export interface SceneLayout {
+  text: VisualBox;
+  choices: Record<string, VisualChoice>;
 }
 export interface StoryContent {
   title: string;
